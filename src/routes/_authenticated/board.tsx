@@ -36,7 +36,7 @@ function BoardPage() {
     queryKey: ["columns", boardId],
     enabled: !!boardId,
     queryFn: async () => {
-      const { data } = await supabase.from("board_columns").select("*").eq("board_id", boardId).order("position");
+      const { data } = await supabase.from("board_columns").select("*").eq("board_id", boardId!).order("position");
       return (data ?? []) as Column[];
     },
   });
@@ -45,7 +45,7 @@ function BoardPage() {
     queryKey: ["tasks", boardId],
     enabled: !!boardId,
     queryFn: async () => {
-      const { data } = await supabase.from("tasks").select("*").eq("board_id", boardId).order("position");
+      const { data } = await supabase.from("tasks").select("*").eq("board_id", boardId!).order("position");
       return (data ?? []) as Task[];
     },
   });

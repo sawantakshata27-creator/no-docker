@@ -7,7 +7,7 @@ import { useEditor, EditorContent } from "@tiptap/react";
 import StarterKit from "@tiptap/starter-kit";
 import Placeholder from "@tiptap/extension-placeholder";
 import Link from "@tiptap/extension-link";
-import { Bold, Italic, List, ListOrdered, Heading1, Heading2, Quote, Plus, FileText, Trash2, Loader2, Code } from "lucide-react";
+import { Bold, Italic, List, ListOrdered, Heading1, Heading2, Quote, Plus, FileText, Trash2, Loader2, Code, Paperclip, X } from "lucide-react";
 import { toast } from "sonner";
 
 export const Route = createFileRoute("/_authenticated/documents")({ component: DocsPage });
@@ -101,6 +101,7 @@ function Editor({ doc, boards, onDelete }: { doc: Doc; boards: { id: string; nam
   const [title, setTitle] = useState(doc.title);
   const [boardId, setBoardId] = useState<string | "">(doc.board_id ?? "");
   const [saving, setSaving] = useState(false);
+  const [attachments, setAttachments] = useState<{ name: string; size: number }[]>([]);
 
   const editor = useEditor({
     extensions: [
@@ -163,7 +164,42 @@ function Editor({ doc, boards, onDelete }: { doc: Doc; boards: { id: string; nam
         <ToolbarBtn active={editor.isActive("orderedList")} onClick={() => editor.chain().focus().toggleOrderedList().run()}><ListOrdered className="h-4 w-4" /></ToolbarBtn>
         <ToolbarBtn active={editor.isActive("blockquote")} onClick={() => editor.chain().focus().toggleBlockquote().run()}><Quote className="h-4 w-4" /></ToolbarBtn>
         <ToolbarBtn active={editor.isActive("codeBlock")} onClick={() => editor.chain().focus().toggleCodeBlock().run()}><Code className="h-4 w-4" /></ToolbarBtn>
+        <label className="ml-auto flex h-8 cursor-pointer items-center gap-1.5 rounded px-2.5 text-xs font-medium text-muted-foreground transition hover:bg-primary-50 hover:text-primary-700">
+          <Paperclip className="h-4 w-4" />
+          <span className="hidden sm:inline">Attach</span>
+          <input
+            type="file"
+            multiple
+            className="hidden"
+            onChange={(e) => {
+              const files = Array.from(e.target.files ?? []);
+              setAttachments((prev) => [...prev, ...files.map((f) => ({ name: f.name, size: f.size }))]);
+              e.target.value = "";
+            }}
+          />
+        </label>
       </div>
+
+      {attachments.length > 0 && (
+        <div className="mb-4 rounded-xl border border-border bg-muted/20 p-3">
+          <div className="mb-2 text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">Attachments</div>
+          <div className="space-y-1.5">
+            {attachments.map((f, i) => (
+              <div key={i} className="flex items-center gap-2 rounded-lg bg-card px-3 py-2 text-sm">
+                <Paperclip className="h-3.5 w-3.5 text-muted-foreground" />
+                <span className="flex-1 truncate font-medium">{f.name}</span>
+                <span className="text-xs text-muted-foreground">{(f.size / 1024).toFixed(1)} KB</span>
+                <button
+                  onClick={() => setAttachments((prev) => prev.filter((_, j) => j !== i))}
+                  className="grid h-5 w-5 place-items-center rounded hover:bg-muted hover:text-destructive"
+                >
+                  <X className="h-3 w-3" />
+                </button>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
 
       <EditorContent editor={editor} />
     </div>

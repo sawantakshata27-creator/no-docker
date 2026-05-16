@@ -19,10 +19,15 @@ function Onboarding() {
   const { user, profile, refreshProfile } = useAuth();
   const [step, setStep] = useState(0);
   const [fullName, setFullName] = useState(profile?.full_name ?? "");
-  const [mode, setMode] = useState<"create" | "join">("create");
+  // Check if user arrived via an invite link (?join=CODE) stored in sessionStorage
+  const pendingCode = sessionStorage.getItem("pendingJoinCode") ?? "";
+  const [mode, setMode] = useState<"create" | "join">(pendingCode ? "join" : "create");
   const [orgName, setOrgName] = useState("");
-  const [joinCode, setJoinCode] = useState("");
+  const [joinCode, setJoinCode] = useState(pendingCode);
   const [loading, setLoading] = useState(false);
+
+  // Clear the stored code once loaded
+  if (pendingCode) sessionStorage.removeItem("pendingJoinCode");
 
   const next = () => setStep((s) => s + 1);
   const back = () => setStep((s) => Math.max(0, s - 1));

@@ -56,7 +56,7 @@ export function Topbar() {
           <Bell className="h-4 w-4" />
         </button>
         <button
-          onClick={() => navigate({ to: "/settings", search: { tab: "profile" } as never })}
+          onClick={() => navigate({ to: "/settings" })}
           className="ml-2 flex items-center gap-2 rounded-xl border border-border pl-1 pr-2 py-1 text-left transition hover:border-primary-500/40 hover:bg-muted/40"
           title="Open profile settings"
         >

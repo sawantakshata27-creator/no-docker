@@ -9,7 +9,12 @@ import {
   SheetHeader,
   SheetTitle,
 } from "@/components/ui/sheet";
-import { priorityClass, type ColumnRecord, type TaskRecord, DEFAULT_PROCESS_STAGES } from "@/lib/task-model";
+import {
+  priorityClass,
+  type ColumnRecord,
+  type TaskRecord,
+  DEFAULT_PROCESS_STAGES,
+} from "@/lib/task-model";
 
 interface TaskDetailsDrawerProps {
   open: boolean;
@@ -56,7 +61,9 @@ export function TaskDetailsDrawer({
     if (!Object.keys(patch).length) return;
     setSaving(true);
     const error = onPersistPatch
-      ? await onPersistPatch(task, patch).then(() => null).catch((persistError) => persistError)
+      ? await onPersistPatch(task, patch)
+          .then(() => null)
+          .catch((persistError) => persistError)
       : (await supabase.from("tasks").update(patch).eq("id", task.id)).error;
     setSaving(false);
     if (error) {
@@ -117,7 +124,9 @@ export function TaskDetailsDrawer({
               <div className="flex items-start justify-between gap-4 pr-8">
                 <div className="space-y-2">
                   <SheetTitle>Task details</SheetTitle>
-                  <SheetDescription>Quick edits save automatically and stay synced with your board.</SheetDescription>
+                  <SheetDescription>
+                    Quick edits save automatically and stay synced with your board.
+                  </SheetDescription>
                 </div>
                 <div className="inline-flex items-center gap-2 rounded-full border border-border bg-muted/40 px-3 py-1 text-xs text-muted-foreground">
                   <Save className="h-3.5 w-3.5" />
@@ -150,15 +159,25 @@ export function TaskDetailsDrawer({
 
             <div className="grid gap-4 sm:grid-cols-2">
               <Field label="Status">
-                <select className="input-field" value={draft.column_id} onChange={(event) => handleColumnChange(event.target.value)}>
+                <select
+                  className="input-field"
+                  value={draft.column_id}
+                  onChange={(event) => handleColumnChange(event.target.value)}
+                >
                   {columns.map((column) => (
-                    <option key={column.id} value={column.id}>{column.name}</option>
+                    <option key={column.id} value={column.id}>
+                      {column.name}
+                    </option>
                   ))}
                 </select>
               </Field>
 
               <Field label="Priority">
-                <select className="input-field" value={draft.priority} onChange={(event) => patchDraft({ priority: event.target.value })}>
+                <select
+                  className="input-field"
+                  value={draft.priority}
+                  onChange={(event) => patchDraft({ priority: event.target.value })}
+                >
                   <option value="high">High</option>
                   <option value="medium">Medium</option>
                   <option value="low">Low</option>
@@ -166,10 +185,16 @@ export function TaskDetailsDrawer({
               </Field>
 
               <Field label="Process stage">
-                <select className="input-field" value={draft.process_stage ?? ""} onChange={(event) => patchDraft({ process_stage: event.target.value || null })}>
+                <select
+                  className="input-field"
+                  value={draft.process_stage ?? ""}
+                  onChange={(event) => patchDraft({ process_stage: event.target.value || null })}
+                >
                   <option value="">No stage</option>
                   {DEFAULT_PROCESS_STAGES.map((stage) => (
-                    <option key={stage} value={stage}>{stage}</option>
+                    <option key={stage} value={stage}>
+                      {stage}
+                    </option>
                   ))}
                 </select>
               </Field>
@@ -181,9 +206,13 @@ export function TaskDetailsDrawer({
                     type="date"
                     className="input-field pl-9"
                     value={draft.due_date ? draft.due_date.slice(0, 10) : ""}
-                    onChange={(event) => patchDraft({
-                      due_date: event.target.value ? new Date(`${event.target.value}T12:00:00`).toISOString() : null,
-                    })}
+                    onChange={(event) =>
+                      patchDraft({
+                        due_date: event.target.value
+                          ? new Date(`${event.target.value}T12:00:00`).toISOString()
+                          : null,
+                      })
+                    }
                   />
                 </div>
               </Field>
@@ -192,7 +221,9 @@ export function TaskDetailsDrawer({
             <div className="rounded-2xl border border-border bg-muted/20 p-4">
               <div className="text-xs font-medium text-muted-foreground">Live preview</div>
               <div className="mt-3 flex flex-wrap items-center gap-2">
-                <span className={`rounded border px-2 py-1 text-[10px] font-medium uppercase ${priorityClass(draft.priority)}`}>
+                <span
+                  className={`rounded border px-2 py-1 text-[10px] font-medium uppercase ${priorityClass(draft.priority)}`}
+                >
                   {draft.priority}
                 </span>
                 {draft.process_stage ? (

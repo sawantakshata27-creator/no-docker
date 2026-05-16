@@ -48,7 +48,10 @@ export function KanbanBoard({ boardId, userId, columns, tasks: initialTasks, onC
 
   const activeTask = tasks.find((task) => task.id === activeId) ?? null;
   const selectedTask = tasks.find((task) => task.id === selectedTaskId) ?? null;
-  const orderedColumns = useMemo(() => [...columns].sort((a, b) => a.position - b.position), [columns]);
+  const orderedColumns = useMemo(
+    () => [...columns].sort((a, b) => a.position - b.position),
+    [columns],
+  );
 
   const onDragStart = (event: DragStartEvent) => {
     setActiveId(String(event.active.id));
@@ -98,7 +101,9 @@ export function KanbanBoard({ boardId, userId, columns, tasks: initialTasks, onC
 
     const before = dragSnapshotRef.current.find((task) => task.id === draggedTaskId);
     const after = nextTasks.find((task) => task.id === draggedTaskId);
-    const affectedColumnIds = Array.from(new Set([before?.column_id, after?.column_id].filter(Boolean) as string[]));
+    const affectedColumnIds = Array.from(
+      new Set([before?.column_id, after?.column_id].filter(Boolean) as string[]),
+    );
 
     try {
       await persistTaskOrder(nextTasks, affectedColumnIds);
@@ -155,8 +160,16 @@ export function KanbanBoard({ boardId, userId, columns, tasks: initialTasks, onC
   };
 
   const removeTask = (taskId: string) => {
-    setTasks((prev) => reindexTasks(prev.filter((task) => task.id !== taskId), orderedColumns));
-    dragSnapshotRef.current = reindexTasks(tasks.filter((task) => task.id !== taskId), orderedColumns);
+    setTasks((prev) =>
+      reindexTasks(
+        prev.filter((task) => task.id !== taskId),
+        orderedColumns,
+      ),
+    );
+    dragSnapshotRef.current = reindexTasks(
+      tasks.filter((task) => task.id !== taskId),
+      orderedColumns,
+    );
     setSelectedTaskId((current) => (current === taskId ? null : current));
     onChange();
   };
@@ -173,10 +186,21 @@ export function KanbanBoard({ boardId, userId, columns, tasks: initialTasks, onC
       >
         <div className="flex gap-4 overflow-x-auto pb-4">
           {orderedColumns.map((column) => {
-            const items = tasks.filter((task) => task.column_id === column.id).sort((a, b) => a.position - b.position);
+            const items = tasks
+              .filter((task) => task.column_id === column.id)
+              .sort((a, b) => a.position - b.position);
             return (
-              <ColumnDroppable key={column.id} id={column.id} count={items.length} name={column.name} color={column.color}>
-                <SortableContext items={items.map((task) => task.id)} strategy={verticalListSortingStrategy}>
+              <ColumnDroppable
+                key={column.id}
+                id={column.id}
+                count={items.length}
+                name={column.name}
+                color={column.color}
+              >
+                <SortableContext
+                  items={items.map((task) => task.id)}
+                  strategy={verticalListSortingStrategy}
+                >
                   <div className="min-h-[40px] space-y-2">
                     {items.map((task) => (
                       <SortableTaskCard
@@ -209,7 +233,12 @@ export function KanbanBoard({ boardId, userId, columns, tasks: initialTasks, onC
                       placeholder="What needs doing?"
                     />
                     <div className="flex gap-2">
-                      <button onClick={() => addTask(column.id)} className="btn-primary py-1.5 text-xs">Add</button>
+                      <button
+                        onClick={() => addTask(column.id)}
+                        className="btn-primary py-1.5 text-xs"
+                      >
+                        Add
+                      </button>
                       <button
                         onClick={() => {
                           setAddingTo(null);
@@ -254,7 +283,12 @@ export function KanbanBoard({ boardId, userId, columns, tasks: initialTasks, onC
   );
 }
 
-function applyTaskMove(tasks: TaskRecord[], activeId: string, overId: string, columns: ColumnRecord[]) {
+function applyTaskMove(
+  tasks: TaskRecord[],
+  activeId: string,
+  overId: string,
+  columns: ColumnRecord[],
+) {
   if (activeId === overId) return tasks;
 
   const activeTask = tasks.find((task) => task.id === activeId);
@@ -267,18 +301,31 @@ function applyTaskMove(tasks: TaskRecord[], activeId: string, overId: string, co
 
   const sourceColumnId = activeTask.column_id;
   const grouped = new Map<string, TaskRecord[]>();
-  columns.forEach((column) => grouped.set(column.id, tasks.filter((task) => task.column_id === column.id).sort((a, b) => a.position - b.position)));
+  columns.forEach((column) =>
+    grouped.set(
+      column.id,
+      tasks.filter((task) => task.column_id === column.id).sort((a, b) => a.position - b.position),
+    ),
+  );
 
-  const sourceTasks = [...(grouped.get(sourceColumnId) ?? [])].filter((task) => task.id !== activeId);
-  const targetTasks = sourceColumnId === targetColumnId ? sourceTasks : [...(grouped.get(targetColumnId) ?? [])];
+  const sourceTasks = [...(grouped.get(sourceColumnId) ?? [])].filter(
+    (task) => task.id !== activeId,
+  );
+  const targetTasks =
+    sourceColumnId === targetColumnId ? sourceTasks : [...(grouped.get(targetColumnId) ?? [])];
 
-  const targetIndex = overTask ? targetTasks.findIndex((task) => task.id === overTask.id) : targetTasks.length;
+  const targetIndex = overTask
+    ? targetTasks.findIndex((task) => task.id === overTask.id)
+    : targetTasks.length;
   const insertAt = targetIndex >= 0 ? targetIndex : targetTasks.length;
-  const doneColumn = columns.find((column) => column.id === targetColumnId)?.name.toLowerCase().includes("done");
+  const doneColumn = columns
+    .find((column) => column.id === targetColumnId)
+    ?.name.toLowerCase()
+    .includes("done");
   const movedTask: TaskRecord = {
     ...activeTask,
     column_id: targetColumnId,
-    completed_at: doneColumn ? activeTask.completed_at ?? new Date().toISOString() : null,
+    completed_at: doneColumn ? (activeTask.completed_at ?? new Date().toISOString()) : null,
   };
 
   targetTasks.splice(insertAt, 0, movedTask);
@@ -342,7 +389,9 @@ function ColumnDroppable({
         <div className="flex items-center gap-2">
           <span className="h-2.5 w-2.5 rounded-full" style={{ background: color ?? "#94a3b8" }} />
           <span className="text-sm font-semibold">{name}</span>
-          <span className="rounded-full bg-card px-1.5 py-0.5 text-[10px] text-muted-foreground">{count}</span>
+          <span className="rounded-full bg-card px-1.5 py-0.5 text-[10px] text-muted-foreground">
+            {count}
+          </span>
         </div>
       </div>
       {children}
@@ -359,7 +408,15 @@ function SortableTaskCard({
   onOpen: () => void;
   selected: boolean;
 }) {
-  const { attributes, listeners, setActivatorNodeRef, setNodeRef, transform, transition, isDragging } = useSortable({ id: task.id });
+  const {
+    attributes,
+    listeners,
+    setActivatorNodeRef,
+    setNodeRef,
+    transform,
+    transition,
+    isDragging,
+  } = useSortable({ id: task.id });
   const style = {
     transform: CSS.Transform.toString(transform),
     transition,
@@ -413,13 +470,19 @@ function TaskCard({
         {dragHandle ?? <span className="mt-0.5 h-6 w-6" />}
         <div className="min-w-0 flex-1">
           <p className="text-sm font-medium leading-snug">{task.title}</p>
-          {task.description ? <p className="mt-1 line-clamp-2 text-xs text-muted-foreground">{task.description}</p> : null}
+          {task.description ? (
+            <p className="mt-1 line-clamp-2 text-xs text-muted-foreground">{task.description}</p>
+          ) : null}
           <div className="mt-3 flex flex-wrap items-center gap-1.5">
-            <span className={`rounded border px-1.5 py-0.5 text-[10px] font-medium uppercase ${priorityClass(task.priority)}`}>
+            <span
+              className={`rounded border px-1.5 py-0.5 text-[10px] font-medium uppercase ${priorityClass(task.priority)}`}
+            >
               {task.priority}
             </span>
             {task.process_stage ? (
-              <span className="rounded bg-primary-50 px-1.5 py-0.5 text-[10px] font-medium text-primary-700">{task.process_stage}</span>
+              <span className="rounded bg-primary-50 px-1.5 py-0.5 text-[10px] font-medium text-primary-700">
+                {task.process_stage}
+              </span>
             ) : null}
             {task.due_date ? (
               <span className="ml-auto inline-flex items-center gap-1 text-[10px] text-muted-foreground">

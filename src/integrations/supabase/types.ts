@@ -87,8 +87,60 @@ export type Database = {
           },
         ]
       }
+      document_versions: {
+        Row: {
+          attachments: Json
+          content: Json
+          created_at: string
+          created_by: string
+          document_id: string
+          id: string
+          org_id: string
+          title: string
+          version_number: number
+        }
+        Insert: {
+          attachments?: Json
+          content?: Json
+          created_at?: string
+          created_by: string
+          document_id: string
+          id?: string
+          org_id: string
+          title: string
+          version_number: number
+        }
+        Update: {
+          attachments?: Json
+          content?: Json
+          created_at?: string
+          created_by?: string
+          document_id?: string
+          id?: string
+          org_id?: string
+          title?: string
+          version_number?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "document_versions_document_id_fkey"
+            columns: ["document_id"]
+            isOneToOne: false
+            referencedRelation: "documents"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "document_versions_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       documents: {
         Row: {
+          attachments: Json
           board_id: string | null
           content: Json
           created_at: string
@@ -99,6 +151,7 @@ export type Database = {
           updated_at: string
         }
         Insert: {
+          attachments?: Json
           board_id?: string | null
           content?: Json
           created_at?: string
@@ -109,6 +162,7 @@ export type Database = {
           updated_at?: string
         }
         Update: {
+          attachments?: Json
           board_id?: string | null
           content?: Json
           created_at?: string
@@ -321,6 +375,10 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      can_access_document_storage: {
+        Args: { _user: string; object_name: string }
+        Returns: boolean
+      }
       has_role: {
         Args: {
           _role: Database["public"]["Enums"]["app_role"]

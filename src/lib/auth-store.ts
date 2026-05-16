@@ -9,16 +9,34 @@ interface Profile {
   avatar_url: string | null;
   team_name: string | null;
   onboarded: boolean;
+  current_org_id: string | null;
+}
+
+export interface Organization {
+  id: string;
+  name: string;
+  code: string;
+  owner_id: string;
+}
+
+export interface Membership {
+  id: string;
+  org_id: string;
+  role: "owner" | "admin" | "member";
+  status: "active" | "pending";
 }
 
 interface AuthState {
   session: Session | null;
   user: User | null;
   profile: Profile | null;
+  org: Organization | null;
+  membership: Membership | null;
   loading: boolean;
   initialized: boolean;
   init: () => Promise<void>;
   refreshProfile: () => Promise<void>;
+  switchOrg: (orgId: string) => Promise<void>;
   signOut: () => Promise<void>;
 }
 
@@ -26,6 +44,8 @@ export const useAuth = create<AuthState>((set, get) => ({
   session: null,
   user: null,
   profile: null,
+  org: null,
+  membership: null,
   loading: true,
   initialized: false,
   init: async () => {
@@ -36,7 +56,7 @@ export const useAuth = create<AuthState>((set, get) => ({
       if (session?.user) {
         setTimeout(() => get().refreshProfile(), 0);
       } else {
-        set({ profile: null });
+        set({ profile: null, org: null, membership: null });
       }
     });
     const { data } = await supabase.auth.getSession();
@@ -46,15 +66,41 @@ export const useAuth = create<AuthState>((set, get) => ({
   refreshProfile: async () => {
     const { user } = get();
     if (!user) return;
-    const { data } = await supabase
+    const { data: profile } = await supabase
       .from("profiles")
-      .select("id, full_name, email, avatar_url, team_name, onboarded")
+      .select("id, full_name, email, avatar_url, team_name, onboarded, current_org_id")
       .eq("id", user.id)
       .maybeSingle();
-    if (data) set({ profile: data as Profile });
+    if (!profile) return;
+    set({ profile: profile as Profile });
+
+    let org: Organization | null = null;
+    let membership: Membership | null = null;
+    if (profile.current_org_id) {
+      const { data: o } = await supabase
+        .from("organizations")
+        .select("id, name, code, owner_id")
+        .eq("id", profile.current_org_id)
+        .maybeSingle();
+      org = (o as Organization) ?? null;
+      const { data: m } = await supabase
+        .from("organization_members")
+        .select("id, org_id, role, status")
+        .eq("org_id", profile.current_org_id)
+        .eq("user_id", user.id)
+        .maybeSingle();
+      membership = (m as Membership) ?? null;
+    }
+    set({ org, membership });
+  },
+  switchOrg: async (orgId: string) => {
+    const { user } = get();
+    if (!user) return;
+    await supabase.from("profiles").update({ current_org_id: orgId }).eq("id", user.id);
+    await get().refreshProfile();
   },
   signOut: async () => {
     await supabase.auth.signOut();
-    set({ session: null, user: null, profile: null });
+    set({ session: null, user: null, profile: null, org: null, membership: null });
   },
 }));

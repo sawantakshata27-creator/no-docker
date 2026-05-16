@@ -56,6 +56,7 @@ export type Database = {
           id: string
           key: string
           name: string
+          org_id: string | null
           owner_id: string
         }
         Insert: {
@@ -64,6 +65,7 @@ export type Database = {
           id?: string
           key: string
           name: string
+          org_id?: string | null
           owner_id: string
         }
         Update: {
@@ -71,6 +73,122 @@ export type Database = {
           description?: string | null
           id?: string
           key?: string
+          name?: string
+          org_id?: string | null
+          owner_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "boards_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      documents: {
+        Row: {
+          board_id: string | null
+          content: Json
+          created_at: string
+          created_by: string
+          id: string
+          org_id: string
+          title: string
+          updated_at: string
+        }
+        Insert: {
+          board_id?: string | null
+          content?: Json
+          created_at?: string
+          created_by: string
+          id?: string
+          org_id: string
+          title?: string
+          updated_at?: string
+        }
+        Update: {
+          board_id?: string | null
+          content?: Json
+          created_at?: string
+          created_by?: string
+          id?: string
+          org_id?: string
+          title?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "documents_board_id_fkey"
+            columns: ["board_id"]
+            isOneToOne: false
+            referencedRelation: "boards"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "documents_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      organization_members: {
+        Row: {
+          created_at: string
+          id: string
+          org_id: string
+          role: string
+          status: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          org_id: string
+          role?: string
+          status?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          org_id?: string
+          role?: string
+          status?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "organization_members_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      organizations: {
+        Row: {
+          code: string
+          created_at: string
+          id: string
+          name: string
+          owner_id: string
+        }
+        Insert: {
+          code: string
+          created_at?: string
+          id?: string
+          name: string
+          owner_id: string
+        }
+        Update: {
+          code?: string
+          created_at?: string
+          id?: string
           name?: string
           owner_id?: string
         }
@@ -80,6 +198,7 @@ export type Database = {
         Row: {
           avatar_url: string | null
           created_at: string
+          current_org_id: string | null
           email: string | null
           full_name: string | null
           id: string
@@ -89,6 +208,7 @@ export type Database = {
         Insert: {
           avatar_url?: string | null
           created_at?: string
+          current_org_id?: string | null
           email?: string | null
           full_name?: string | null
           id: string
@@ -98,13 +218,22 @@ export type Database = {
         Update: {
           avatar_url?: string | null
           created_at?: string
+          current_org_id?: string | null
           email?: string | null
           full_name?: string | null
           id?: string
           onboarded?: boolean
           team_name?: string | null
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "profiles_current_org_id_fkey"
+            columns: ["current_org_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       tasks: {
         Row: {
@@ -199,6 +328,8 @@ export type Database = {
         }
         Returns: boolean
       }
+      is_org_admin: { Args: { _org: string; _user: string }; Returns: boolean }
+      is_org_member: { Args: { _org: string; _user: string }; Returns: boolean }
     }
     Enums: {
       app_role: "admin" | "manager" | "member"

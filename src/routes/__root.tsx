@@ -12,6 +12,7 @@ import { Toaster } from "sonner";
 
 import appCss from "../styles.css?url";
 import { useAuth } from "@/lib/auth-store";
+import { initTheme, useTheme } from "@/lib/theme-store";
 
 function NotFoundComponent() {
   return (
@@ -83,7 +84,22 @@ function RootShell({ children }: { children: React.ReactNode }) {
 function RootComponent() {
   const { queryClient } = Route.useRouteContext();
   const init = useAuth((s) => s.init);
+  const dark = useTheme((s) => s.dark);
+
+  useEffect(() => {
+    initTheme();
+  }, []);
+
+  useEffect(() => {
+    if (dark) {
+      document.documentElement.classList.add("dark");
+    } else {
+      document.documentElement.classList.remove("dark");
+    }
+  }, [dark]);
+
   useEffect(() => { init(); }, [init]);
+
   return (
     <QueryClientProvider client={queryClient}>
       <Outlet />

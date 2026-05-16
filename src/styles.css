@@ -55,12 +55,12 @@
 :root {
   --radius: 0.75rem;
   --background: oklch(1 0 0);
-  --foreground: oklch(0.22 0.04 270);
-  --surface: oklch(0.972 0.005 270);
+  --foreground: oklch(0.2 0.03 270);
+  --surface: oklch(0.968 0.005 270);
   --card: oklch(1 0 0);
-  --card-foreground: oklch(0.22 0.04 270);
+  --card-foreground: oklch(0.2 0.03 270);
   --popover: oklch(1 0 0);
-  --popover-foreground: oklch(0.22 0.04 270);
+  --popover-foreground: oklch(0.2 0.03 270);
 
   /* Purple brand */
   --primary: oklch(0.52 0.24 295);
@@ -74,8 +74,8 @@
 
   --secondary: oklch(0.97 0.012 270);
   --secondary-foreground: oklch(0.28 0.06 280);
-  --muted: oklch(0.97 0.008 270);
-  --muted-foreground: oklch(0.5 0.03 270);
+  --muted: oklch(0.965 0.008 270);
+  --muted-foreground: oklch(0.52 0.03 270);
   --accent: oklch(0.95 0.04 295);
   --accent-foreground: oklch(0.38 0.21 295);
 
@@ -85,12 +85,12 @@
   --destructive: oklch(0.62 0.22 22);
   --destructive-foreground: oklch(0.99 0 0);
 
-  --border: oklch(0.93 0.012 270);
-  --input: oklch(0.93 0.012 270);
+  --border: oklch(0.92 0.012 270);
+  --input: oklch(0.92 0.012 270);
   --ring: oklch(0.52 0.24 295);
 
-  --sidebar-from: oklch(0.34 0.16 285);
-  --sidebar-to: oklch(0.22 0.13 285);
+  --sidebar-from: oklch(0.32 0.17 285);
+  --sidebar-to: oklch(0.2 0.14 285);
 
   --chart-1: oklch(0.52 0.24 295);
   --chart-2: oklch(0.65 0.18 245);
@@ -100,27 +100,33 @@
 }
 
 .dark {
-  --background: oklch(0.16 0.03 270);
+  --background: oklch(0.15 0.03 270);
   --foreground: oklch(0.97 0.01 270);
-  --surface: oklch(0.2 0.03 270);
-  --card: oklch(0.22 0.04 275);
+  --surface: oklch(0.18 0.03 270);
+  --card: oklch(0.21 0.04 275);
   --card-foreground: oklch(0.97 0.01 270);
-  --popover: oklch(0.22 0.04 275);
+  --popover: oklch(0.21 0.04 275);
   --popover-foreground: oklch(0.97 0.01 270);
-  --secondary: oklch(0.28 0.05 280);
+  --secondary: oklch(0.27 0.05 280);
   --secondary-foreground: oklch(0.97 0.01 270);
-  --muted: oklch(0.26 0.04 275);
-  --muted-foreground: oklch(0.72 0.03 270);
-  --accent: oklch(0.32 0.1 290);
+  --muted: oklch(0.25 0.04 275);
+  --muted-foreground: oklch(0.68 0.03 270);
+  --accent: oklch(0.31 0.1 290);
   --accent-foreground: oklch(0.97 0.01 270);
-  --border: oklch(1 0 0 / 10%);
-  --input: oklch(1 0 0 / 15%);
+  --border: oklch(1 0 0 / 9%);
+  --input: oklch(1 0 0 / 12%);
+  --primary-50: oklch(0.32 0.1 290);
+  --primary-100: oklch(0.36 0.12 290);
 }
 
 @layer base {
   * { border-color: var(--color-border); }
-  html, body { font-family: var(--font-sans); }
+  html, body { font-family: var(--font-sans); -webkit-font-smoothing: antialiased; }
   body { background-color: var(--color-surface); color: var(--color-foreground); }
+  ::-webkit-scrollbar { width: 6px; height: 6px; }
+  ::-webkit-scrollbar-track { background: transparent; }
+  ::-webkit-scrollbar-thumb { background: oklch(0.75 0.02 270); border-radius: 99px; }
+  ::-webkit-scrollbar-thumb:hover { background: oklch(0.6 0.03 270); }
 }
 
 @layer components {
@@ -134,11 +140,16 @@
     background-color: var(--color-primary-600);
     color: var(--color-primary-foreground);
     border-radius: 0.75rem;
-    padding: 0.625rem 1rem;
+    padding: 0.625rem 1.125rem;
     font-weight: 500;
-    transition: background-color 150ms ease, transform 150ms ease;
+    font-size: 0.875rem;
+    transition: background-color 150ms ease, transform 100ms ease, box-shadow 150ms ease;
+    box-shadow: 0 1px 2px rgba(0,0,0,0.1);
   }
-  .btn-primary:hover { background-color: var(--color-primary-700); }
+  .btn-primary:hover {
+    background-color: var(--color-primary-700);
+    box-shadow: 0 2px 8px rgba(124, 58, 237, 0.35);
+  }
   .btn-primary:active { transform: translateY(1px); }
   .input-field {
     background: var(--color-card);
@@ -146,15 +157,23 @@
     border-radius: 0.75rem;
     padding: 0.625rem 0.875rem;
     width: 100%;
+    font-size: 0.875rem;
+    color: var(--color-foreground);
     transition: box-shadow 150ms ease, border-color 150ms ease;
   }
+  .input-field::placeholder { color: var(--color-muted-foreground); }
   .input-field:focus {
     outline: none;
     border-color: var(--color-primary-500);
-    box-shadow: 0 0 0 4px color-mix(in oklab, var(--color-primary-500) 25%, transparent);
+    box-shadow: 0 0 0 3px color-mix(in oklab, var(--color-primary-500) 20%, transparent);
+  }
+  .input-field:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+    background: var(--color-muted);
   }
   .sidebar-gradient {
-    background: linear-gradient(180deg, var(--color-sidebar-from) 0%, var(--color-sidebar-to) 100%);
+    background: linear-gradient(170deg, var(--color-sidebar-from) 0%, var(--color-sidebar-to) 100%);
     box-shadow: var(--shadow-sidebar);
   }
 }

@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import {
   DndContext,
   DragOverlay,
@@ -6,6 +6,7 @@ import {
   useSensor,
   useSensors,
   closestCorners,
+  useDroppable,
   type DragEndEvent,
   type DragOverEvent,
   type DragStartEvent,
@@ -32,15 +33,13 @@ export function KanbanBoard({ boardId, userId, columns, tasks: initialTasks, onC
   const [addingTo, setAddingTo] = useState<string | null>(null);
   const [newTitle, setNewTitle] = useState("");
 
-  // Sync if parent data changes
-  if (initialTasks !== tasks && activeId === null) {
-    // shallow check by length+ids
-    const aIds = initialTasks.map((t) => t.id).join(",");
-    const bIds = tasks.map((t) => t.id).join(",");
-    if (aIds !== bIds) setTasks(initialTasks);
-  }
+  // Sync external task changes via effect (not during render)
+  useEffect(() => {
+    if (activeId !== null) return; // never overwrite while dragging
+    setTasks(initialTasks);
+  }, [initialTasks, activeId]);
 
-  const sensors = useSensors(useSensor(PointerSensor, { activationConstraint: { distance: 5 } }));
+  const sensors = useSensors(useSensor(PointerSensor, { activationConstraint: { distance: 6 } }));
 
   const tasksByCol = (colId: string) =>
     tasks.filter((t) => t.column_id === colId).sort((a, b) => a.position - b.position);
@@ -56,21 +55,24 @@ export function KanbanBoard({ boardId, userId, columns, tasks: initialTasks, onC
     const overIdStr = String(over.id);
     if (activeIdStr === overIdStr) return;
 
-    const activeTask = tasks.find((t) => t.id === activeIdStr);
-    if (!activeTask) return;
+    setTasks((prev) => {
+      const activeT = prev.find((t) => t.id === activeIdStr);
+      if (!activeT) return prev;
 
-    // Dragging over a column container
-    const overColumn = columns.find((c) => c.id === overIdStr);
-    if (overColumn && activeTask.column_id !== overColumn.id) {
-      setTasks((prev) => prev.map((t) => (t.id === activeIdStr ? { ...t, column_id: overColumn.id } : t)));
-      return;
-    }
+      // Over a column
+      const overCol = columns.find((c) => c.id === overIdStr);
+      if (overCol) {
+        if (activeT.column_id === overCol.id) return prev;
+        return prev.map((t) => (t.id === activeIdStr ? { ...t, column_id: overCol.id } : t));
+      }
 
-    // Dragging over another task
-    const overTask = tasks.find((t) => t.id === overIdStr);
-    if (overTask && activeTask.column_id !== overTask.column_id) {
-      setTasks((prev) => prev.map((t) => (t.id === activeIdStr ? { ...t, column_id: overTask.column_id } : t)));
-    }
+      // Over another task in a different column → move into that column at that task's index
+      const overT = prev.find((t) => t.id === overIdStr);
+      if (overT && activeT.column_id !== overT.column_id) {
+        return prev.map((t) => (t.id === activeIdStr ? { ...t, column_id: overT.column_id } : t));
+      }
+      return prev;
+    });
   };
 
   const onDragEnd = async (e: DragEndEvent) => {
@@ -80,35 +82,43 @@ export function KanbanBoard({ boardId, userId, columns, tasks: initialTasks, onC
 
     const activeIdStr = String(active.id);
     const overIdStr = String(over.id);
+    const activeT = tasks.find((t) => t.id === activeIdStr);
+    if (!activeT) return;
 
-    const activeTask = tasks.find((t) => t.id === activeIdStr);
-    if (!activeTask) return;
+    const overCol = columns.find((c) => c.id === overIdStr);
+    const overT = tasks.find((t) => t.id === overIdStr);
+    const targetColId = overCol?.id ?? overT?.column_id ?? activeT.column_id;
 
-    let nextTasks = [...tasks];
-    const overTask = tasks.find((t) => t.id === overIdStr);
-    const targetColId = overTask?.column_id ?? activeTask.column_id;
+    const colTasks = tasks.filter((t) => t.column_id === targetColId);
+    const oldIdx = colTasks.findIndex((t) => t.id === activeIdStr);
+    const newIdx = overT
+      ? colTasks.findIndex((t) => t.id === overIdStr)
+      : colTasks.length - 1;
+    const reordered = oldIdx >= 0 && newIdx >= 0 ? arrayMove(colTasks, oldIdx, newIdx) : colTasks;
 
-    // Reorder within the destination column
-    const colTasks = nextTasks.filter((t) => t.column_id === targetColId);
-    const oldIndex = colTasks.findIndex((t) => t.id === activeIdStr);
-    const newIndex = overTask ? colTasks.findIndex((t) => t.id === overIdStr) : colTasks.length - 1;
+    const next = tasks.filter((t) => t.column_id !== targetColId);
+    reordered.forEach((t, i) => next.push({ ...t, position: i, column_id: targetColId }));
+    setTasks(next);
 
-    const reordered = oldIndex >= 0 && newIndex >= 0 ? arrayMove(colTasks, oldIndex, newIndex) : colTasks;
+    // Persist only the moved card (smaller payload, avoids RLS upsert pitfalls)
+    const movedIndex = reordered.findIndex((t) => t.id === activeIdStr);
+    const { error } = await supabase
+      .from("tasks")
+      .update({ column_id: targetColId, position: movedIndex })
+      .eq("id", activeIdStr);
 
-    nextTasks = nextTasks.filter((t) => t.column_id !== targetColId);
-    reordered.forEach((t, i) => nextTasks.push({ ...t, position: i }));
-    setTasks(nextTasks);
+    // Then update siblings' positions in the destination column
+    if (!error) {
+      await Promise.all(
+        reordered
+          .filter((t) => t.id !== activeIdStr)
+          .map((t, i) => {
+            const pos = reordered.findIndex((x) => x.id === t.id);
+            return supabase.from("tasks").update({ position: pos }).eq("id", t.id);
+          })
+      );
+    }
 
-    // Persist updated positions + column for the moved task and its column siblings
-    const updates = reordered.map((t, i) => ({
-      id: t.id,
-      column_id: targetColId,
-      position: i,
-      board_id: boardId,
-      title: t.title,
-      created_by: userId,
-    }));
-    const { error } = await supabase.from("tasks").upsert(updates);
     if (error) {
       toast.error("Failed to save changes");
       onChange();
@@ -167,17 +177,18 @@ export function KanbanBoard({ boardId, userId, columns, tasks: initialTasks, onC
           );
         })}
       </div>
-      <DragOverlay>{activeTask ? <TaskCard task={activeTask} dragging /> : null}</DragOverlay>
+      <DragOverlay dropAnimation={null}>{activeTask ? <TaskCard task={activeTask} dragging /> : null}</DragOverlay>
     </DndContext>
   );
 }
 
 function ColumnDroppable({ id, name, color, count, children }: { id: string; name: string; color: string | null; count: number; children: React.ReactNode }) {
-  const { setNodeRef, isOver } = useSortable({ id });
+  // Use plain droppable for the column container itself (sortable is wrong for the column)
+  const { setNodeRef, isOver } = useDroppable({ id });
   return (
     <div
       ref={setNodeRef}
-      className={`flex w-[300px] shrink-0 flex-col rounded-2xl border border-border bg-muted/40 p-3 transition ${isOver ? "ring-2 ring-primary-500/40" : ""}`}
+      className={`flex w-[300px] shrink-0 flex-col rounded-2xl border border-border bg-muted/40 p-3 transition ${isOver ? "ring-2 ring-primary-500/40 bg-primary-50/50" : ""}`}
     >
       <div className="mb-3 flex items-center justify-between px-1">
         <div className="flex items-center gap-2">
@@ -213,8 +224,7 @@ function TaskCard({ task, dragging = false }: { task: Task; dragging?: boolean }
   };
   return (
     <motion.div
-      layout
-      whileHover={{ y: -2 }}
+      layout="position"
       className={`group cursor-grab rounded-xl border border-border bg-card p-3 shadow-sm transition active:cursor-grabbing ${dragging ? "rotate-2 shadow-xl ring-2 ring-primary-500/40" : ""}`}
     >
       <div className="flex items-start gap-2">

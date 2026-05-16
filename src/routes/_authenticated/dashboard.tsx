@@ -24,15 +24,15 @@ const TREND = Array.from({ length: 14 }, (_, i) => ({
 }));
 
 function Dashboard() {
-  const { user, profile } = useAuth();
+  const { user, profile, org } = useAuth();
   const { data: tasks } = useQuery({
-    queryKey: ["dashboard-tasks", user?.id],
+    queryKey: ["dashboard-tasks", org?.id ?? user?.id],
     enabled: !!user,
     queryFn: async () => {
-      const { data } = await supabase
-        .from("tasks")
-        .select("id, title, priority, completed_at, column_id, board_columns(name, color)")
-        .order("created_at", { ascending: false });
+      const q = org
+        ? supabase.from("tasks").select("id, title, priority, completed_at, column_id, created_at, board_columns(name, color), boards!inner(org_id)").eq("boards.org_id", org.id)
+        : supabase.from("tasks").select("id, title, priority, completed_at, column_id, created_at, board_columns(name, color), boards!inner(owner_id)").eq("boards.owner_id", user!.id);
+      const { data } = await q.order("created_at", { ascending: false });
       return data ?? [];
     },
   });

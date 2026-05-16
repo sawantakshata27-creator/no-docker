@@ -46,7 +46,11 @@ function BoardPage() {
     queryKey: ["columns", boardId],
     enabled: !!boardId,
     queryFn: async () => {
-      const { data, error } = await supabase.from("board_columns").select("*").eq("board_id", boardId!).order("position");
+      const { data, error } = await supabase
+        .from("board_columns")
+        .select("*")
+        .eq("board_id", boardId!)
+        .order("position");
       if (error) throw error;
       return (data ?? []) as Column[];
     },
@@ -56,7 +60,11 @@ function BoardPage() {
     queryKey: ["tasks", boardId],
     enabled: !!boardId,
     queryFn: async () => {
-      const { data, error } = await supabase.from("tasks").select("*").eq("board_id", boardId!).order("position");
+      const { data, error } = await supabase
+        .from("tasks")
+        .select("*")
+        .eq("board_id", boardId!)
+        .order("position");
       if (error) throw error;
       return (data ?? []) as Task[];
     },
@@ -77,7 +85,11 @@ function BoardPage() {
     if (!user) return;
     setCreatingBoard(true);
     try {
-      const keyBase = (org?.name ?? "MAIN").replace(/[^A-Z0-9]/gi, "").slice(0, 4).toUpperCase() || "MAIN";
+      const keyBase =
+        (org?.name ?? "MAIN")
+          .replace(/[^A-Z0-9]/gi, "")
+          .slice(0, 4)
+          .toUpperCase() || "MAIN";
       const boardName = org ? `${org.name} Workflow` : "My Workflow";
       const { data: board, error: boardError } = await supabase
         .from("boards")
@@ -131,11 +143,20 @@ function BoardPage() {
           <div>
             <h1 className="text-2xl font-bold">No board yet</h1>
             <p className="mt-2 text-sm text-muted-foreground">
-              Create a starter board with realistic workflow data so drag-and-drop, task details, and analytics are ready immediately.
+              Create a starter board with realistic workflow data so drag-and-drop, task details,
+              and analytics are ready immediately.
             </p>
           </div>
-          <button onClick={createStarterBoard} disabled={creatingBoard} className="btn-primary inline-flex items-center gap-2 disabled:opacity-60">
-            {creatingBoard ? <Loader2 className="h-4 w-4 animate-spin" /> : <Plus className="h-4 w-4" />}
+          <button
+            onClick={createStarterBoard}
+            disabled={creatingBoard}
+            className="btn-primary inline-flex items-center gap-2 disabled:opacity-60"
+          >
+            {creatingBoard ? (
+              <Loader2 className="h-4 w-4 animate-spin" />
+            ) : (
+              <Plus className="h-4 w-4" />
+            )}
             Create starter board
           </button>
         </div>
@@ -148,10 +169,18 @@ function BoardPage() {
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-2xl font-bold">Board</h1>
-          <p className="text-sm text-muted-foreground">Open cards, quick-edit details, and drag tasks across workflow stages.</p>
+          <p className="text-sm text-muted-foreground">
+            Open cards, quick-edit details, and drag tasks across workflow stages.
+          </p>
         </div>
       </div>
-      <KanbanBoard boardId={boardId} userId={user!.id} columns={columns} tasks={tasks ?? []} onChange={refetch} />
+      <KanbanBoard
+        boardId={boardId}
+        userId={user!.id}
+        columns={columns}
+        tasks={tasks ?? []}
+        onChange={refetch}
+      />
     </div>
   );
 }

@@ -72,7 +72,12 @@ export function buildSeedTasks(columns: ColumnRecord[], boardId: string, userId:
 
   return sortedColumns.flatMap((column, columnIndex) => {
     const count = columnIndex === 0 ? 7 : columnIndex === sortedColumns.length - 1 ? 4 : 6;
-    const pool = columnIndex === 0 ? titlePools.backlog : columnIndex === sortedColumns.length - 1 ? titlePools.review : titlePools.active;
+    const pool =
+      columnIndex === 0
+        ? titlePools.backlog
+        : columnIndex === sortedColumns.length - 1
+          ? titlePools.review
+          : titlePools.active;
 
     return Array.from({ length: count }, (_, index) => {
       const title = `${randomOf(pool)} #${Math.floor(Math.random() * 90 + 10)}`;

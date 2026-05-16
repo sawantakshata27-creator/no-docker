@@ -40,15 +40,26 @@ export function Topbar() {
           title="Click to copy workspace code"
         >
           <span className="font-medium">{org.name}</span>
-          <span className="rounded bg-primary-50 px-1.5 py-0.5 font-mono text-[10px] text-primary-700">{org.code}</span>
-          {copied ? <Check className="h-3 w-3 text-emerald-600" /> : <Copy className="h-3 w-3 text-muted-foreground" />}
+          <span className="rounded bg-primary-50 px-1.5 py-0.5 font-mono text-[10px] text-primary-700">
+            {org.code}
+          </span>
+          {copied ? (
+            <Check className="h-3 w-3 text-emerald-600" />
+          ) : (
+            <Copy className="h-3 w-3 text-muted-foreground" />
+          )}
         </button>
       ) : null}
 
       <div className="relative ml-auto max-w-md flex-1">
         <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-        <input className="input-field py-2 pl-9 pr-16 text-sm" placeholder="Search tasks, docs, people…" />
-        <kbd className="absolute right-2 top-1/2 -translate-y-1/2 rounded-md bg-muted px-1.5 py-0.5 text-[10px] text-muted-foreground">⌘K</kbd>
+        <input
+          className="input-field py-2 pl-9 pr-16 text-sm"
+          placeholder="Search tasks, docs, people…"
+        />
+        <kbd className="absolute right-2 top-1/2 -translate-y-1/2 rounded-md bg-muted px-1.5 py-0.5 text-[10px] text-muted-foreground">
+          ⌘K
+        </kbd>
       </div>
 
       <div className="flex items-center gap-2">
@@ -60,7 +71,9 @@ export function Topbar() {
           className="ml-2 flex items-center gap-2 rounded-xl border border-border pl-1 pr-2 py-1 text-left transition hover:border-primary-500/40 hover:bg-muted/40"
           title="Open profile settings"
         >
-          <div className="grid h-7 w-7 place-items-center rounded-lg bg-primary-600 text-xs font-semibold text-white">{initials}</div>
+          <div className="grid h-7 w-7 place-items-center rounded-lg bg-primary-600 text-xs font-semibold text-white">
+            {initials}
+          </div>
           <div className="text-xs leading-tight">
             <div className="font-medium">{profile?.full_name ?? "User"}</div>
             <div className="text-muted-foreground">{org?.name ?? "Personal workspace"}</div>

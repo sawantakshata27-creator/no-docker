@@ -21,16 +21,22 @@ export type Task = {
 };
 
 function BoardPage() {
-  const { user } = useAuth();
+  const { user, org } = useAuth();
   const qc = useQueryClient();
   const [boardId, setBoardId] = useState<string | null>(null);
 
-  // Load first board
+  // Find first board in current org (fallback to personal owner board)
   useEffect(() => {
     if (!user) return;
-    supabase.from("boards").select("id").eq("owner_id", user.id).order("created_at").limit(1).maybeSingle()
-      .then(({ data }) => setBoardId(data?.id ?? null));
-  }, [user]);
+    (async () => {
+      if (org) {
+        const { data } = await supabase.from("boards").select("id").eq("org_id", org.id).order("created_at").limit(1).maybeSingle();
+        if (data) { setBoardId(data.id); return; }
+      }
+      const { data } = await supabase.from("boards").select("id").eq("owner_id", user.id).order("created_at").limit(1).maybeSingle();
+      setBoardId(data?.id ?? null);
+    })();
+  }, [user, org]);
 
   const { data: columns } = useQuery({
     queryKey: ["columns", boardId],
@@ -66,7 +72,7 @@ function BoardPage() {
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-2xl font-bold">Board</h1>
-          <p className="text-sm text-muted-foreground">Drag cards across stages — Jira-style.</p>
+          <p className="text-sm text-muted-foreground">Drag cards across stages.</p>
         </div>
       </div>
       <KanbanBoard

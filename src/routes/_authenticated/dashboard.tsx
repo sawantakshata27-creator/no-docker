@@ -73,7 +73,7 @@ function Dashboard() {
     },
   });
 
-  const { data: pendingCount } = useRQ({
+  const { data: pendingCount } = useQuery({
     queryKey: ["pending-count", org?.id],
     enabled: !!org && (membership?.role === "owner" || membership?.role === "admin"),
     queryFn: async () => {

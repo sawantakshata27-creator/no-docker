@@ -42,6 +42,17 @@ function Onboarding() {
           .single();
         if (oErr) throw oErr;
 
+        // Add owner as active member
+        await supabase.from("organization_members").insert({
+          org_id: org.id,
+          user_id: user.id,
+          role: "owner",
+          status: "active",
+        });
+
+        // Set current org on profile
+        await supabase.from("profiles").update({ current_org_id: org.id }).eq("id", user.id);
+
         // Seed first org board
         const { data: board, error: bErr } = await supabase
           .from("boards")
@@ -73,6 +84,8 @@ function Onboarding() {
           .from("organization_members")
           .insert({ org_id: org.id, user_id: user.id, role: "member", status: "pending" });
         if (mErr && !mErr.message.includes("duplicate")) throw mErr;
+        // Set current_org_id so pending screen can show org name
+        await supabase.from("profiles").update({ current_org_id: org.id }).eq("id", user.id);
         toast.success(`Request sent to join ${org.name}. An admin will approve you shortly.`);
       }
 

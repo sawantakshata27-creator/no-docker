@@ -17,6 +17,7 @@ interface TaskDetailsDrawerProps {
   columns: ColumnRecord[];
   onOpenChange: (open: boolean) => void;
   onTaskPatched: (taskId: string, patch: Partial<TaskRecord>) => void;
+  onPersistPatch?: (task: TaskRecord, patch: Partial<TaskRecord>) => Promise<void>;
   onTaskDeleted?: (taskId: string) => void;
   onPersistError?: () => void;
 }
@@ -27,6 +28,7 @@ export function TaskDetailsDrawer({
   columns,
   onOpenChange,
   onTaskPatched,
+  onPersistPatch,
   onTaskDeleted,
   onPersistError,
 }: TaskDetailsDrawerProps) {
@@ -50,25 +52,27 @@ export function TaskDetailsDrawer({
     };
   }, []);
 
-  const persistPatch = async (taskId: string, patch: Partial<TaskRecord>) => {
+  const persistPatch = async (task: TaskRecord, patch: Partial<TaskRecord>) => {
     if (!Object.keys(patch).length) return;
     setSaving(true);
-    const { error } = await supabase.from("tasks").update(patch).eq("id", taskId);
+    const error = onPersistPatch
+      ? await onPersistPatch(task, patch).then(() => null).catch((persistError) => persistError)
+      : (await supabase.from("tasks").update(patch).eq("id", task.id)).error;
     setSaving(false);
     if (error) {
-      toast.error(error.message || "Failed to update task");
+      toast.error((error as any).message || "Failed to update task");
       onPersistError?.();
       return;
     }
   };
 
-  const queuePersist = (taskId: string, patch: Partial<TaskRecord>) => {
+  const queuePersist = (task: TaskRecord, patch: Partial<TaskRecord>) => {
     pendingPatchRef.current = { ...pendingPatchRef.current, ...patch };
     if (timerRef.current) window.clearTimeout(timerRef.current);
     timerRef.current = window.setTimeout(async () => {
       const nextPatch = pendingPatchRef.current;
       pendingPatchRef.current = {};
-      await persistPatch(taskId, nextPatch);
+      await persistPatch(task, nextPatch);
       timerRef.current = null;
     }, 350);
   };
@@ -78,7 +82,7 @@ export function TaskDetailsDrawer({
     const next = { ...draft, ...patch };
     setDraft(next);
     onTaskPatched(draft.id, patch);
-    queuePersist(draft.id, patch);
+    queuePersist(draft, patch);
   };
 
   const handleDelete = async () => {

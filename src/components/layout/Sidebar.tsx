@@ -11,7 +11,7 @@ import {
   ChevronRight,
 } from "lucide-react";
 import { useState } from "react";
-import { motion } from "framer-motion";
+import { motion, AnimatePresence } from "framer-motion";
 import { useAuth } from "@/lib/auth-store";
 
 const NAV = [
@@ -31,67 +31,129 @@ export function Sidebar() {
 
   return (
     <motion.aside
-      animate={{ width: collapsed ? 72 : 240 }}
-      transition={{ duration: 0.2, ease: "easeInOut" }}
-      className="sidebar-gradient sticky top-0 flex h-screen flex-col text-white overflow-hidden"
+      animate={{ width: collapsed ? 76 : 248 }}
+      transition={{ duration: 0.28, ease: [0.16, 1, 0.3, 1] }}
+      className="sidebar-gradient sticky top-0 z-10 flex h-screen flex-col overflow-hidden text-white"
+      data-testid="app-sidebar"
     >
-      {/* Logo */}
-      <div className="flex h-16 shrink-0 items-center gap-3 px-4 border-b border-white/10">
-        <div className="grid h-9 w-9 shrink-0 place-items-center rounded-xl bg-white/15 font-bold text-sm">
+      <div className="relative z-10 flex h-16 shrink-0 items-center gap-3 border-b border-white/10 px-4">
+        <div className="grid h-9 w-9 shrink-0 place-items-center rounded-xl bg-white/15 font-display text-sm font-bold shadow-inner backdrop-blur">
           2D
         </div>
-        {!collapsed && (
-          <motion.div
-            initial={false}
-            animate={{ opacity: 1 }}
-            className="overflow-hidden"
-          >
-            <div className="font-semibold text-sm leading-tight">2DS Workflow</div>
-            <div className="text-[11px] text-white/55 leading-tight">Enterprise OS</div>
-          </motion.div>
-        )}
+        <AnimatePresence>
+          {!collapsed && (
+            <motion.div
+              key="logo-text"
+              initial={{ opacity: 0, x: -8 }}
+              animate={{ opacity: 1, x: 0 }}
+              exit={{ opacity: 0, x: -8 }}
+              transition={{ duration: 0.2 }}
+              className="overflow-hidden"
+            >
+              <motion.div
+                initial={{ opacity: 0, y: 4 }}
+                animate={{ opacity: 1, y: 0 }}
+                className="font-display text-sm leading-tight font-semibold"
+              >
+                2DS Workflow
+              </motion.div>
+              <div className="text-[10px] leading-tight tracking-wider text-white/50 uppercase">
+                Enterprise OS
+              </div>
+            </motion.div>
+          )}
+        </AnimatePresence>
       </div>
 
-      {/* Org badge */}
-      {!collapsed && org && (
-        <div className="mx-3 mt-3 rounded-xl bg-white/10 px-3 py-2">
-          <div className="text-[10px] font-medium text-white/50 uppercase tracking-wider">Workspace</div>
-          <div className="mt-0.5 truncate text-xs font-semibold text-white">{org.name}</div>
-          <div className="mt-0.5 font-mono text-[10px] text-white/50">{org.code}</div>
-        </div>
-      )}
-
-      {/* Nav */}
-      <nav className="flex-1 space-y-0.5 px-2 py-3 overflow-y-auto">
-        {NAV.map((item) => {
-          const active =
-            pathname === item.to ||
-            (item.to !== "/dashboard" && pathname.startsWith(item.to));
-          return (
-            <Link
-              key={item.to}
-              to={item.to}
-              title={collapsed ? item.label : undefined}
-              className={`group relative flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm transition-all ${
-                active
-                  ? "bg-white/15 text-white font-medium"
-                  : "text-white/65 hover:bg-white/10 hover:text-white"
-              }`}
+      <AnimatePresence>
+        {!collapsed && org && (
+          <motion.div
+            key="org-badge"
+            initial={{ opacity: 0, y: -6 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: -6 }}
+            className="relative z-10 mx-3 mt-3 rounded-xl border border-white/10 bg-white/[0.07] px-3 py-2.5 backdrop-blur"
+          >
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              transition={{ delay: 0.1 }}
+              className="text-[9px] font-semibold tracking-[0.18em] text-white/45 uppercase"
             >
-              {active && (
-                <span className="absolute left-0 top-1/2 h-5 w-0.5 -translate-y-1/2 rounded-r bg-white" />
-              )}
-              <item.icon className="h-4.5 w-4.5 shrink-0" style={{ width: 18, height: 18 }} />
-              {!collapsed && <span className="truncate">{item.label}</span>}
-            </Link>
+              Workspace
+            </motion.div>
+            <motion.div
+              initial={{ opacity: 0, x: -6 }}
+              animate={{ opacity: 1, x: 0 }}
+              transition={{ delay: 0.15 }}
+              className="mt-0.5 truncate text-sm font-semibold text-white"
+            >
+              {org.name}
+            </motion.div>
+            <div className="mt-1 inline-block rounded bg-white/10 px-1.5 py-0.5 font-mono text-[10px] text-white/70">
+              {org.code}
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
+      <nav className="relative z-10 flex-1 space-y-0.5 overflow-y-auto px-2 py-4">
+        {NAV.map((item, i) => {
+          const active =
+            pathname === item.to || (item.to !== "/dashboard" && pathname.startsWith(item.to));
+          return (
+            <motion.div
+              key={item.to}
+              initial={{ opacity: 0, x: -8 }}
+              animate={{ opacity: 1, x: 0 }}
+              transition={{ delay: i * 0.04, duration: 0.3 }}
+            >
+              <Link
+                to={item.to}
+                title={collapsed ? item.label : undefined}
+                data-testid={`nav-${item.to.replace("/", "")}`}
+                className={`group relative flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm transition-all duration-200 ${
+                  active
+                    ? "bg-white/15 font-medium text-white"
+                    : "text-white/65 hover:translate-x-0.5 hover:bg-white/[0.08] hover:text-white"
+                }`}
+              >
+                {active && (
+                  <motion.span
+                    layoutId="sidebar-active"
+                    className="absolute top-1/2 left-0 h-6 w-[3px] -translate-y-1/2 rounded-r-full bg-white shadow-[0_0_12px_rgba(255,255,255,0.5)]"
+                    transition={{ type: "spring", stiffness: 380, damping: 32 }}
+                  />
+                )}
+                <motion.span whileHover={{ x: active ? 0 : 2 }} className="shrink-0">
+                  <item.icon
+                    style={{ width: 18, height: 18 }}
+                    strokeWidth={active ? 2.4 : 2}
+                  />
+                </motion.span>
+                <AnimatePresence>
+                  {!collapsed && (
+                    <motion.span
+                      initial={{ opacity: 0 }}
+                      animate={{ opacity: 1 }}
+                      exit={{ opacity: 0 }}
+                      transition={{ duration: 0.15 }}
+                      className="truncate"
+                    >
+                      {item.label}
+                    </motion.span>
+                  )}
+                </AnimatePresence>
+              </Link>
+            </motion.div>
           );
         })}
       </nav>
 
-      {/* Collapse button */}
       <button
         onClick={() => setCollapsed((c) => !c)}
-        className="mx-2 mb-3 flex shrink-0 items-center justify-center gap-2 rounded-xl border border-white/10 bg-white/5 px-3 py-2 text-xs text-white/60 transition hover:bg-white/10 hover:text-white"
+        data-testid="sidebar-collapse-btn"
+        className="relative z-10 mx-2 mb-3 flex shrink-0 items-center justify-center gap-2 rounded-xl border border-white/10 bg-white/[0.04] px-3 py-2 text-xs text-white/60 backdrop-blur transition hover:bg-white/[0.1] hover:text-white"
       >
         {collapsed ? (
           <ChevronRight className="h-4 w-4" />

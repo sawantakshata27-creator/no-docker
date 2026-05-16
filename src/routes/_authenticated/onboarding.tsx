@@ -98,13 +98,27 @@ function Onboarding() {
     }
   };
 
+  const handleEnter = (canContinue: boolean, isLast: boolean) =>
+    (e: React.KeyboardEvent<HTMLInputElement>) => {
+      if (e.key === "Enter" && canContinue) {
+        e.preventDefault();
+        isLast ? finish() : next();
+      }
+    };
+
   const steps = [
     {
       title: "What should we call you?",
       subtitle: "We'll use this on your profile and assignments.",
       content: (
-        <input autoFocus className="input-field text-lg" placeholder="Jane Doe"
-          value={fullName} onChange={(e) => setFullName(e.target.value)} />
+        <input
+          autoFocus
+          className="input-field text-lg"
+          placeholder="Jane Doe"
+          value={fullName}
+          onChange={(e) => setFullName(e.target.value)}
+          onKeyDown={handleEnter(fullName.trim().length > 1, false)}
+        />
       ),
       canContinue: fullName.trim().length > 1,
     },
@@ -132,16 +146,28 @@ function Onboarding() {
       title: "Name your workspace",
       subtitle: "Your team, boards, and documents will live here.",
       content: (
-        <input autoFocus className="input-field text-lg" placeholder="Acme Operations"
-          value={orgName} onChange={(e) => setOrgName(e.target.value)} />
+        <input
+          autoFocus
+          className="input-field text-lg"
+          placeholder="Acme Operations"
+          value={orgName}
+          onChange={(e) => setOrgName(e.target.value)}
+          onKeyDown={handleEnter(orgName.trim().length > 1, false)}
+        />
       ),
       canContinue: orgName.trim().length > 1,
     } : {
       title: "Enter the workspace code",
       subtitle: "Ask your admin for the code shown on their Team page.",
       content: (
-        <input autoFocus className="input-field text-lg uppercase tracking-widest" placeholder="ACME-7Q2X"
-          value={joinCode} onChange={(e) => setJoinCode(e.target.value.toUpperCase())} />
+        <input
+          autoFocus
+          className="input-field text-lg uppercase tracking-widest"
+          placeholder="ACME-7Q2X"
+          value={joinCode}
+          onChange={(e) => setJoinCode(e.target.value.toUpperCase())}
+          onKeyDown={handleEnter(joinCode.trim().length >= 4, false)}
+        />
       ),
       canContinue: joinCode.trim().length >= 4,
     },

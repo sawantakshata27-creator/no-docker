@@ -26,8 +26,8 @@ import {
   Check,
   UserPlus,
 } from "lucide-react";
-import { motion } from "framer-motion";
-import { useState } from "react";
+import { motion, useSpring, useTransform } from "framer-motion";
+import { useState, useEffect } from "react";
 import { toast } from "sonner";
 import { Link } from "@tanstack/react-router";
 
@@ -106,22 +106,35 @@ function Dashboard() {
 
   const isAdmin = membership?.role === "owner" || membership?.role === "admin";
 
+  const page = {
+    hidden: {},
+    show: { transition: { staggerChildren: 0.07, delayChildren: 0.04 } },
+  };
+  const sectionItem = {
+    hidden: { opacity: 0, y: 14 },
+    show: { opacity: 1, y: 0, transition: { duration: 0.45, ease: [0.16, 1, 0.3, 1] } },
+  };
+
   return (
-    <div className="space-y-6">
-      {/* Header */}
-      <div className="flex flex-wrap items-start justify-between gap-4">
-        <div>
-          <h1 className="text-2xl font-bold">
+    <motion.div className="space-y-6" variants={page} initial="hidden" animate="show">
+      <motion.div
+        variants={sectionItem}
+        className="flex flex-wrap items-start justify-between gap-4"
+      >
+        <motion.div variants={sectionItem}>
+          <h1 className="font-display text-2xl font-bold tracking-tight">
             Welcome back, {profile?.full_name?.split(" ")[0] ?? "there"} 👋
           </h1>
           <p className="text-sm text-muted-foreground">
             Here's what's happening across {org?.name ?? "your workspace"}.
           </p>
-        </div>
+        </motion.div>
         {org && (
-          <button
+          <motion.button
+            whileHover={{ y: -2 }}
+            whileTap={{ scale: 0.98 }}
             onClick={copyOrgCode}
-            className="flex items-center gap-2.5 rounded-xl border border-primary-200 bg-primary-50 px-4 py-2.5 transition hover:bg-primary-100"
+            className="flex items-center gap-2.5 rounded-xl border border-primary-200 bg-primary-50 px-4 py-2.5 transition hover:bg-primary-100 hover:shadow-[0_8px_24px_-12px_rgba(124,58,237,0.35)]"
           >
             <div>
               <div className="text-[10px] font-medium uppercase tracking-wide text-primary-600">Org ID</div>
@@ -132,9 +145,9 @@ function Dashboard() {
             ) : (
               <Copy className="h-4 w-4 text-primary-500" />
             )}
-          </button>
+          </motion.button>
         )}
-      </div>
+      </motion.div>
 
       {/* Admin: pending join requests banner */}
       {isAdmin && (pendingCount ?? 0) > 0 && (
@@ -152,8 +165,7 @@ function Dashboard() {
         </Link>
       )}
 
-      {/* KPI cards */}
-      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+      <motion.div variants={sectionItem} className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
         {[
           { icon: Files, label: "Total tasks", value: total, delta: "+12%", color: "bg-primary-50 text-primary-700", trend: "up" as const },
           { icon: CheckCircle2, label: "Completed", value: done, delta: "+8%", color: "bg-emerald-50 text-emerald-600", trend: "up" as const },
@@ -162,14 +174,17 @@ function Dashboard() {
         ].map((kpi, i) => (
           <Kpi key={i} {...kpi} delay={i * 0.05} />
         ))}
-      </div>
+      </motion.div>
 
-      {/* Charts row 1 */}
-      <div className="grid gap-4 lg:grid-cols-3">
-        <div className="card-surface lg:col-span-2 p-5">
+      <motion.div variants={sectionItem} className="grid gap-4 lg:grid-cols-3">
+        <motion.div
+          variants={sectionItem}
+          whileHover={{ y: -2 }}
+          className="card-surface lg:col-span-2 p-5"
+        >
           <div className="flex items-center justify-between">
             <div>
-              <h3 className="font-semibold">Completion trend</h3>
+              <h3 className="font-display font-semibold">Completion trend</h3>
               <p className="text-xs text-muted-foreground">Last 14 days</p>
             </div>
             <span className="rounded-full bg-emerald-50 px-2 py-0.5 text-xs font-medium text-emerald-600">
@@ -200,7 +215,7 @@ function Dashboard() {
               </AreaChart>
             </ResponsiveContainer>
           </div>
-        </div>
+        </motion.div>
 
         <div className="card-surface p-5">
           <h3 className="font-semibold">Status mix</h3>
@@ -237,7 +252,7 @@ function Dashboard() {
             ))}
           </div>
         </div>
-      </div>
+      </motion.div>
 
       {/* Charts row 2 */}
       <div className="grid gap-4 lg:grid-cols-3">
@@ -295,17 +310,25 @@ function Dashboard() {
           </ul>
         </div>
       </div>
-    </div>
+    </motion.div>
   );
 }
 
 function Kpi({ icon: Icon, label, value, delta, color, trend, delay }: any) {
+  const spring = useSpring(0, { stiffness: 90, damping: 22 });
+  const display = useTransform(spring, (v) => Math.round(v));
+
+  useEffect(() => {
+    spring.set(value);
+  }, [spring, value]);
+
   return (
     <motion.div
-      initial={{ opacity: 0, y: 8 }}
+      initial={{ opacity: 0, y: 12 }}
       animate={{ opacity: 1, y: 0 }}
-      transition={{ delay }}
-      className="card-surface p-5"
+      transition={{ delay, duration: 0.45, ease: [0.16, 1, 0.3, 1] }}
+      whileHover={{ y: -4 }}
+      className="card-surface p-5 transition-shadow hover:shadow-[0_18px_40px_-16px_rgba(76,29,149,0.22)]"
     >
       <div className="flex items-start justify-between">
         <div className={`grid h-10 w-10 place-items-center rounded-xl ${color}`}>
@@ -320,7 +343,7 @@ function Kpi({ icon: Icon, label, value, delta, color, trend, delay }: any) {
           {delta}
         </span>
       </div>
-      <div className="mt-4 text-2xl font-bold">{value}</div>
+      <motion.div className="mt-4 font-display text-2xl font-bold">{display}</motion.div>
       <div className="text-xs text-muted-foreground">{label}</div>
     </motion.div>
   );

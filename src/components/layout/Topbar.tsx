@@ -1,4 +1,4 @@
-import { Bell, Check, Copy, LogOut, Moon, Sun, Settings2 } from "lucide-react";
+import { Check, Copy, LogOut, Moon, Sun, Settings2, AlertTriangle } from "lucide-react";
 import { useNavigate } from "@tanstack/react-router";
 import { useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
@@ -6,12 +6,14 @@ import { toast } from "sonner";
 import { useAuth } from "@/lib/auth-store";
 import { useTheme } from "@/lib/theme-store";
 import { UserAvatar } from "@/components/ui/UserAvatar";
+import { NotificationsPanel } from "./NotificationsPanel";
 
 export function Topbar() {
   const { profile, org, signOut } = useAuth();
   const navigate = useNavigate();
   const { dark, toggle } = useTheme();
   const [copied, setCopied] = useState(false);
+  const [logoutConfirm, setLogoutConfirm] = useState(false);
 
   const hour = new Date().getHours();
   const greet = hour < 12 ? "Good morning" : hour < 18 ? "Good afternoon" : "Good evening";
@@ -22,6 +24,12 @@ export function Topbar() {
     setCopied(true);
     toast.success("Org ID copied to clipboard");
     setTimeout(() => setCopied(false), 1500);
+  };
+
+  const handleLogout = async () => {
+    await signOut();
+    setLogoutConfirm(false);
+    navigate({ to: "/login" });
   };
 
   return (
@@ -54,21 +62,11 @@ export function Topbar() {
           </span>
           <AnimatePresence mode="wait">
             {copied ? (
-              <motion.span
-                key="copied"
-                initial={{ scale: 0.6, opacity: 0 }}
-                animate={{ scale: 1, opacity: 1 }}
-                exit={{ scale: 0.6, opacity: 0 }}
-              >
+              <motion.span key="copied" initial={{ scale: 0.6, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} exit={{ scale: 0.6, opacity: 0 }}>
                 <Check className="h-3 w-3 text-emerald-600" />
               </motion.span>
             ) : (
-              <motion.span
-                key="copy"
-                initial={{ scale: 0.6, opacity: 0 }}
-                animate={{ scale: 1, opacity: 1 }}
-                exit={{ scale: 0.6, opacity: 0 }}
-              >
+              <motion.span key="copy" initial={{ scale: 0.6, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} exit={{ scale: 0.6, opacity: 0 }}>
                 <Copy className="h-3 w-3 text-muted-foreground" />
               </motion.span>
             )}
@@ -92,38 +90,18 @@ export function Topbar() {
         >
           <AnimatePresence mode="wait">
             {dark ? (
-              <motion.span
-                key="sun"
-                initial={{ rotate: -90, opacity: 0 }}
-                animate={{ rotate: 0, opacity: 1 }}
-                exit={{ rotate: 90, opacity: 0 }}
-                transition={{ duration: 0.2 }}
-              >
+              <motion.span key="sun" initial={{ rotate: -90, opacity: 0 }} animate={{ rotate: 0, opacity: 1 }} exit={{ rotate: 90, opacity: 0 }} transition={{ duration: 0.2 }}>
                 <Sun className="h-4 w-4" />
               </motion.span>
             ) : (
-              <motion.span
-                key="moon"
-                initial={{ rotate: 90, opacity: 0 }}
-                animate={{ rotate: 0, opacity: 1 }}
-                exit={{ rotate: -90, opacity: 0 }}
-                transition={{ duration: 0.2 }}
-              >
+              <motion.span key="moon" initial={{ rotate: 90, opacity: 0 }} animate={{ rotate: 0, opacity: 1 }} exit={{ rotate: -90, opacity: 0 }} transition={{ duration: 0.2 }}>
                 <Moon className="h-4 w-4" />
               </motion.span>
             )}
           </AnimatePresence>
         </motion.button>
 
-        <motion.button
-          whileHover={{ scale: 1.05 }}
-          whileTap={{ scale: 0.95 }}
-          className="relative grid h-9 w-9 place-items-center rounded-full text-muted-foreground transition hover:bg-muted hover:text-foreground"
-          data-testid="notifications-btn"
-        >
-          <Bell className="h-4 w-4" />
-          <span className="absolute top-2 right-2 h-1.5 w-1.5 animate-pulse-soft rounded-full bg-[oklch(0.72_0.17_25)]" />
-        </motion.button>
+        <NotificationsPanel />
 
         <button
           onClick={() => navigate({ to: "/settings" })}
@@ -131,40 +109,68 @@ export function Topbar() {
           className="ml-1.5 flex items-center gap-2.5 rounded-full border border-border bg-card px-2 py-1 transition hover:border-primary-300 hover:bg-muted/40"
           title="Open profile settings"
         >
-          <UserAvatar
-            name={profile?.full_name ?? profile?.email}
-            avatarUrl={profile?.avatar_url}
-            size="sm"
-          />
-          <motion.div
-            className="hidden text-xs leading-tight lg:block"
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            transition={{ delay: 0.15 }}
-          >
-            <motion.div layout className="font-semibold">
-              {profile?.full_name ?? "User"}
-            </motion.div>
-            <motion.div layout className="text-muted-foreground">
-              {org?.name ?? "No workspace"}
-            </motion.div>
+          <UserAvatar name={profile?.full_name ?? profile?.email} avatarUrl={profile?.avatar_url} size="sm" />
+          <motion.div className="hidden text-xs leading-tight lg:block" initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.15 }}>
+            <motion.div layout className="font-semibold">{profile?.full_name ?? "User"}</motion.div>
+            <motion.div layout className="text-muted-foreground">{org?.name ?? "No workspace"}</motion.div>
           </motion.div>
           <Settings2 className="mr-1 h-3.5 w-3.5 text-muted-foreground" />
         </button>
 
-        <motion.button
-          whileHover={{ scale: 1.05 }}
-          whileTap={{ scale: 0.95 }}
-          onClick={async () => {
-            await signOut();
-            navigate({ to: "/login" });
-          }}
-          data-testid="signout-btn"
-          className="grid h-9 w-9 place-items-center rounded-full text-muted-foreground transition hover:bg-destructive/10 hover:text-destructive"
-          title="Sign out"
-        >
-          <LogOut className="h-4 w-4" />
-        </motion.button>
+        {/* Logout with confirmation pop-up */}
+        <div className="relative">
+          <AnimatePresence>
+            {logoutConfirm && (
+              <motion.div
+                initial={{ opacity: 0, y: -8, scale: 0.95 }}
+                animate={{ opacity: 1, y: 0, scale: 1 }}
+                exit={{ opacity: 0, y: -8, scale: 0.95 }}
+                transition={{ duration: 0.15 }}
+                className="absolute right-0 top-11 z-50 w-64 overflow-hidden rounded-2xl border border-border bg-popover shadow-xl"
+                data-testid="logout-confirm-panel"
+              >
+                <div className="p-4">
+                  <div className="flex items-center gap-2 text-sm font-semibold text-foreground">
+                    <AlertTriangle className="h-4 w-4 text-amber-500" />
+                    Sign out?
+                  </div>
+                  <p className="mt-1 text-xs text-muted-foreground">
+                    You'll need to sign in again to access your workspace.
+                  </p>
+                  <div className="mt-3 flex gap-2">
+                    <button
+                      id="logout-confirm-btn"
+                      onClick={handleLogout}
+                      className="flex-1 rounded-lg bg-destructive px-3 py-2 text-xs font-semibold text-white transition hover:brightness-110"
+                    >
+                      Yes, sign out
+                    </button>
+                    <button
+                      id="logout-cancel-btn"
+                      onClick={() => setLogoutConfirm(false)}
+                      className="flex-1 rounded-lg border border-border px-3 py-2 text-xs font-medium text-muted-foreground transition hover:bg-muted"
+                    >
+                      Cancel
+                    </button>
+                  </div>
+                </div>
+              </motion.div>
+            )}
+          </AnimatePresence>
+          {logoutConfirm && (
+            <div className="fixed inset-0 z-40" onClick={() => setLogoutConfirm(false)} />
+          )}
+          <motion.button
+            whileHover={{ scale: 1.05 }}
+            whileTap={{ scale: 0.95 }}
+            onClick={() => setLogoutConfirm((v) => !v)}
+            data-testid="signout-btn"
+            className="relative z-50 grid h-9 w-9 place-items-center rounded-full text-muted-foreground transition hover:bg-destructive/10 hover:text-destructive"
+            title="Sign out"
+          >
+            <LogOut className="h-4 w-4" />
+          </motion.button>
+        </div>
       </motion.div>
     </motion.header>
   );

@@ -108,7 +108,7 @@ export function KanbanBoard({ boardId, userId, columns, tasks: initialTasks, onC
     try {
       await persistTaskOrder(nextTasks, affectedColumnIds);
       dragSnapshotRef.current = nextTasks;
-      onChange();
+      // We rely on optimistic updates. No immediate onChange() refetch to avoid snap-back.
     } catch (error: any) {
       setTasks(dragSnapshotRef.current);
       toast.error(error?.message || "Failed to save task movement");
@@ -460,23 +460,60 @@ function TaskCard({
   onOpen?: () => void;
   dragHandle?: React.ReactNode;
 }) {
+  const [editing, setEditing] = useState(false);
+  const [draft, setDraft] = useState(task.title);
+  const inputRef = useRef<HTMLInputElement>(null);
+
+  useEffect(() => { setDraft(task.title); }, [task.title]);
+
+  const commitEdit = async () => {
+    setEditing(false);
+    const trimmed = draft.trim();
+    if (!trimmed || trimmed === task.title) { setDraft(task.title); return; }
+    await supabase.from("tasks").update({ title: trimmed }).eq("id", task.id);
+  };
+
   return (
     <motion.div
       layout="position"
-      onClick={onOpen}
-      className={`rounded-xl border bg-card p-3 shadow-sm transition ${onOpen ? "cursor-pointer" : "cursor-grab"} ${selected ? "border-primary-500 ring-2 ring-primary-500/20" : "border-border"} ${dragging ? "rotate-2 shadow-xl ring-2 ring-primary-500/40" : "hover:border-primary-500/30 hover:shadow-md"}`}
+      onClick={editing ? undefined : onOpen}
+      className={`rounded-xl border bg-card p-3 shadow-sm transition ${onOpen && !editing ? "cursor-pointer" : ""} ${selected ? "border-primary-500 ring-2 ring-primary-500/20" : "border-border"} ${dragging ? "rotate-2 shadow-xl ring-2 ring-primary-500/40" : "hover:border-primary-500/30 hover:shadow-md"}`}
     >
       <div className="flex items-start gap-2">
         {dragHandle ?? <span className="mt-0.5 h-6 w-6" />}
         <div className="min-w-0 flex-1">
-          <p className="text-sm font-medium leading-snug">{task.title}</p>
-          {task.description ? (
+          {editing ? (
+            <input
+              ref={inputRef}
+              className="input-field py-1 text-sm font-medium"
+              value={draft}
+              autoFocus
+              onChange={(e) => setDraft(e.target.value)}
+              onBlur={commitEdit}
+              onKeyDown={(e) => {
+                if (e.key === "Enter") { e.preventDefault(); commitEdit(); }
+                if (e.key === "Escape") { setDraft(task.title); setEditing(false); }
+              }}
+              onClick={(e) => e.stopPropagation()}
+            />
+          ) : (
+            <p
+              className="text-sm font-medium leading-snug"
+              onDoubleClick={(e) => {
+                e.stopPropagation();
+                setEditing(true);
+                setTimeout(() => inputRef.current?.select(), 0);
+              }}
+              title="Double-click to rename"
+            >
+              {task.title}
+            </p>
+          )}
+          {task.description && !editing ? (
             <p className="mt-1 line-clamp-2 text-xs text-muted-foreground">{task.description}</p>
           ) : null}
           <div className="mt-3 flex flex-wrap items-center gap-1.5">
-            <span
-              className={`rounded border px-1.5 py-0.5 text-[10px] font-medium uppercase ${priorityClass(task.priority)}`}
-            >
+            <span className={`rounded border px-1.5 py-0.5 text-[10px] font-medium uppercase ${priorityClass(task.priority)}`}>
               {task.priority}
             </span>
             {task.process_stage ? (

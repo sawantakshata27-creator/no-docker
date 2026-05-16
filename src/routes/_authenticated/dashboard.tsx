@@ -89,6 +89,12 @@ function Dashboard() {
   const total = tasks?.length ?? 0;
   const done = tasks?.filter((t: any) => t.board_columns?.name === "Done").length ?? 0;
   const inProgress = tasks?.filter((t: any) => t.board_columns?.name === "In Progress").length ?? 0;
+  const today = new Date(); today.setHours(0, 0, 0, 0);
+  const overdue = tasks?.filter((t: any) =>
+    t.due_date &&
+    new Date(t.due_date) < today &&
+    t.board_columns?.name !== "Done"
+  ).length ?? 0;
 
   const status = [
     { name: "Done", value: done, color: "#10b981" },
@@ -170,7 +176,7 @@ function Dashboard() {
           { icon: Files, label: "Total tasks", value: total, delta: "+12%", color: "bg-primary-50 text-primary-700", trend: "up" as const },
           { icon: CheckCircle2, label: "Completed", value: done, delta: "+8%", color: "bg-emerald-50 text-emerald-600", trend: "up" as const },
           { icon: Clock, label: "In progress", value: inProgress, delta: "-3%", color: "bg-blue-50 text-blue-600", trend: "down" as const },
-          { icon: AlertTriangle, label: "Overdue", value: 0, delta: "0%", color: "bg-amber-50 text-amber-600", trend: "up" as const },
+          { icon: AlertTriangle, label: "Overdue", value: overdue, delta: overdue > 0 ? `${overdue} tasks` : "Clear", color: "bg-amber-50 text-amber-600", trend: overdue > 0 ? "down" as const : "up" as const },
         ].map((kpi, i) => (
           <Kpi key={i} {...kpi} delay={i * 0.05} />
         ))}

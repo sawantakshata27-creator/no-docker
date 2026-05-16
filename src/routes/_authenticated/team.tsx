@@ -1,9 +1,9 @@
-import { createFileRoute } from "@tanstack/react-router";
+import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { useState } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/lib/auth-store";
-import { Copy, Check, UserPlus, Crown, Shield, User, X, Loader2, Users } from "lucide-react";
+import { Copy, Check, UserPlus, Crown, Shield, User, X, Loader2, Users, Link2, PlusCircle } from "lucide-react";
 import { toast } from "sonner";
 import { UserAvatar } from "@/components/ui/UserAvatar";
 
@@ -19,8 +19,12 @@ type Member = {
 
 function TeamPage() {
   const { org, membership, user } = useAuth();
+  const navigate = useNavigate();
   const qc = useQueryClient();
   const [copied, setCopied] = useState(false);
+  const [joiningAnother, setJoiningAnother] = useState(false);
+  const [joinCode, setJoinCode] = useState("");
+  const [joinLoading, setJoinLoading] = useState(false);
 
   const { data: members, isLoading } = useQuery({
     queryKey: ["members", org?.id],
@@ -73,6 +77,43 @@ function TeamPage() {
     toast.success("Org ID copied");
   };
 
+  // TODO: Replace window.location.origin with your production domain when deploying
+  const getInviteUrl = () =>
+    `${window.location.origin}/?join=${org.code}`;
+
+  const copyInviteLink = async () => {
+    await navigator.clipboard.writeText(getInviteUrl());
+    toast.success("Invite link copied — share it with teammates!");
+  };
+
+  const copyInviteMessage = async () => {
+    const msg = `You've been invited to join "${org.name}" on 2DS Workflow.\n\nClick to join: ${getInviteUrl()}\n\nOr sign up manually and enter Org ID: ${org.code}`;
+    await navigator.clipboard.writeText(msg);
+    toast.success("Invite message copied — paste it anywhere!");
+  };
+
+  const joinAnotherOrg = async () => {
+    if (!user || !joinCode.trim()) return;
+    setJoinLoading(true);
+    try {
+      const { data: targetOrg, error: oErr } = await supabase
+        .from("organizations").select("id, name").eq("code", joinCode.trim().toUpperCase()).maybeSingle();
+      if (oErr) throw oErr;
+      if (!targetOrg) throw new Error("No workspace found with that code");
+      const { error: mErr } = await supabase
+        .from("organization_members")
+        .insert({ org_id: targetOrg.id, user_id: user.id, role: "member", status: "pending" });
+      if (mErr && !mErr.message.includes("duplicate")) throw mErr;
+      toast.success(`Request sent to join "${targetOrg.name}". An admin will approve you.`);
+      setJoiningAnother(false);
+      setJoinCode("");
+    } catch (e: any) {
+      toast.error(e.message ?? "Failed to join workspace");
+    } finally {
+      setJoinLoading(false);
+    }
+  };
+
   const approve = async (m: Member) => {
     await supabase.from("organization_members").update({ status: "active" }).eq("id", m.id);
     await supabase
@@ -115,14 +156,14 @@ function TeamPage() {
 
       {/* Org ID card */}
       <div className="card-surface p-5">
-        <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+        <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
           <div>
             <h3 className="font-semibold">Invite members</h3>
             <p className="mt-0.5 text-xs text-muted-foreground">
-              Share the Org ID below. Members paste it during onboarding to request access.
+              Share the link or Org ID. New users will be guided through onboarding with the join code pre-filled.
             </p>
           </div>
-          <div className="flex items-center gap-3">
+          <div className="flex flex-wrap items-center gap-3">
             <div className="flex items-center gap-2 rounded-xl border border-primary-200 bg-primary-50 px-4 py-2.5">
               <span className="font-mono text-lg font-bold text-primary-700">{org.code}</span>
             </div>
@@ -133,7 +174,55 @@ function TeamPage() {
               {copied ? <Check className="h-4 w-4 text-emerald-600" /> : <Copy className="h-4 w-4" />}
               {copied ? "Copied!" : "Copy ID"}
             </button>
+            <button
+              onClick={copyInviteLink}
+              className="inline-flex items-center gap-2 rounded-xl border border-primary-200 bg-primary-50 px-3 py-2.5 text-sm font-medium text-primary-700 transition hover:bg-primary-100"
+            >
+              <Link2 className="h-4 w-4" />
+              Copy invite link
+            </button>
+            <button
+              onClick={copyInviteMessage}
+              className="inline-flex items-center gap-2 rounded-xl border border-primary-200 bg-primary-50 px-3 py-2.5 text-sm font-medium text-primary-700 transition hover:bg-primary-100"
+            >
+              <UserPlus className="h-4 w-4" />
+              Copy full message
+            </button>
           </div>
+        </div>
+
+        {/* Join another workspace */}
+        <div className="mt-4 border-t border-border pt-4">
+          {joiningAnother ? (
+            <div className="flex items-center gap-3">
+              <input
+                autoFocus
+                value={joinCode}
+                onChange={(e) => setJoinCode(e.target.value.toUpperCase())}
+                placeholder="Enter workspace code e.g. ACME-7Q2X"
+                className="input-field flex-1 py-2 font-mono text-sm uppercase tracking-widest"
+                onKeyDown={(e) => { if (e.key === "Enter") joinAnotherOrg(); if (e.key === "Escape") setJoiningAnother(false); }}
+              />
+              <button
+                onClick={joinAnotherOrg}
+                disabled={joinLoading || joinCode.trim().length < 4}
+                className="rounded-xl bg-primary-600 px-4 py-2.5 text-sm font-medium text-white transition hover:bg-primary-700 disabled:opacity-50"
+              >
+                {joinLoading ? <Loader2 className="h-4 w-4 animate-spin" /> : "Send request"}
+              </button>
+              <button onClick={() => { setJoiningAnother(false); setJoinCode(""); }} className="grid h-9 w-9 place-items-center rounded-lg border border-border text-muted-foreground hover:bg-muted">
+                <X className="h-4 w-4" />
+              </button>
+            </div>
+          ) : (
+            <button
+              onClick={() => setJoiningAnother(true)}
+              className="inline-flex items-center gap-2 text-sm text-muted-foreground transition hover:text-primary-700"
+            >
+              <PlusCircle className="h-4 w-4" />
+              Join another workspace
+            </button>
+          )}
         </div>
       </div>
 

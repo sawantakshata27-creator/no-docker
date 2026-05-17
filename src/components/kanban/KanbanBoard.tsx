@@ -47,9 +47,9 @@ export function KanbanBoard({ boardId, userId, columns, tasks: initialTasks, onC
   const sensors = useSensors(
     useSensor(PointerSensor, { 
       activationConstraint: { 
-        distance: 3,
+        distance: 2,
         delay: 0,
-        tolerance: 5
+        tolerance: 3
       } 
     })
   );
@@ -113,10 +113,11 @@ export function KanbanBoard({ boardId, userId, columns, tasks: initialTasks, onC
       new Set([before?.column_id, after?.column_id].filter(Boolean) as string[]),
     );
 
-    // Persist in background, call onChange when done so parent stays in sync
+    // Persist in background without blocking UI
     persistTaskOrder(nextTasks, affectedColumnIds)
       .then(() => {
-        onChange();
+        // Debounced onChange to avoid too many refetches
+        setTimeout(() => onChange(), 500);
       })
       .catch((error: any) => {
         setTasks(dragSnapshotRef.current);

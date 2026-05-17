@@ -437,7 +437,7 @@ test -f src/App.js && echo "exists" || echo "doesn't exist"
 ## 📞 CONTACT & RESOURCES
 
 - **Repository:** https://github.com/sawantakshata27-creator/no-docker
-- **Supabase Dashboard:** https://supabase.com/dashboard/project/phfloudgwzbnawmzshlg
+- **Supabase Dashboard:** https://supabase.com/dashboard/project/ybuczlpeydxktghmbdms
 - **Tech Docs:** 
   - TanStack Start: https://tanstack.com/start
   - Supabase: https://supabase.com/docs

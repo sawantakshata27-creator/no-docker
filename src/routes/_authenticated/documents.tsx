@@ -123,23 +123,25 @@ function Editor({ doc, boards, onDelete }: { doc: Doc; boards: { id: string; nam
     queryKey: ["doc-files", doc.id],
     queryFn: async () => {
       const { data, error } = await supabase.storage
-        .from("documents")
+        .from("document-files")
         .list(`${org!.id}/${doc.id}`);
       
       if (error || !data) return [];
       
       const files: FileAttachment[] = await Promise.all(
         data.map(async (file) => {
-          const { data: { publicUrl } } = supabase.storage
-            .from("documents")
-            .getPublicUrl(`${org!.id}/${doc.id}/${file.name}`);
+          // The "document-files" bucket is private, so build a signed URL
+          // (valid for 1 hour) instead of a public URL.
+          const { data: signed } = await supabase.storage
+            .from("document-files")
+            .createSignedUrl(`${org!.id}/${doc.id}/${file.name}`, 60 * 60);
           
           return {
             id: file.id,
             name: file.name,
             size: file.metadata?.size ?? 0,
             path: `${org!.id}/${doc.id}/${file.name}`,
-            url: publicUrl,
+            url: signed?.signedUrl ?? "",
           };
         })
       );
@@ -186,7 +188,7 @@ function Editor({ doc, boards, onDelete }: { doc: Doc; boards: { id: string; nam
       for (const file of files) {
         const filePath = `${org.id}/${doc.id}/${file.name}`;
         const { error } = await supabase.storage
-          .from("documents")
+          .from("document-files")
           .upload(filePath, file, { upsert: true });
         
         if (error) throw error;
@@ -203,7 +205,7 @@ function Editor({ doc, boards, onDelete }: { doc: Doc; boards: { id: string; nam
 
   const handleDeleteFile = async (attachment: FileAttachment) => {
     if (!confirm(`Delete ${attachment.name}?`)) return;
-    const { error } = await supabase.storage.from("documents").remove([attachment.path]);
+    const { error } = await supabase.storage.from("document-files").remove([attachment.path]);
     if (error) return toast.error(error.message);
     toast.success("File deleted");
     qc.invalidateQueries({ queryKey: ["doc-files", doc.id] });

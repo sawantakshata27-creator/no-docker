@@ -90,14 +90,15 @@ function LoginPage() {
   const handleGoogle = async () => {
     setLoading(true);
     try {
-      // Redirect directly to /dashboard. Supabase client has detectSessionInUrl
-      // enabled by default, so it will automatically exchange the PKCE code
-      // (or pick up the implicit-flow token) on the destination page, and our
-      // auth-store onAuthStateChange listener will populate the session.
+      // Redirect to the dedicated /auth/callback route which awaits
+      // supabase.auth.exchangeCodeForSession(...) before navigating to
+      // /dashboard or /onboarding. Going straight to /dashboard caused a
+      // race against the _authenticated guard which bounced back to /login
+      // before the PKCE code was exchanged.
       const { error } = await supabase.auth.signInWithOAuth({
         provider: "google",
         options: {
-          redirectTo: `${window.location.origin}/dashboard`,
+          redirectTo: `${window.location.origin}/auth/callback`,
         },
       });
 

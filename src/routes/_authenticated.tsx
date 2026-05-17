@@ -20,7 +20,8 @@ function Gate() {
     if (profile && !profile.onboarded && pathname !== "/onboarding") {
       navigate({ to: "/onboarding", replace: true });
     }
-  }, [session, profile, loading, pathname, navigate]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [session, profile, loading, pathname]);
 
   if (loading || !session) {
     return (

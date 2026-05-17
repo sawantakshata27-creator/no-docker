@@ -25,7 +25,8 @@ function Callback() {
         navigate({ to: "/login", replace: true });
       }
     })();
-  }, [navigate, refreshProfile]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
   return (
     <div className="grid min-h-screen place-items-center bg-surface">
       <div className="flex items-center gap-2 text-muted-foreground">

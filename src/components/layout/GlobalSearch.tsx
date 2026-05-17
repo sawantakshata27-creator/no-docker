@@ -127,12 +127,14 @@ export function GlobalSearch() {
     <>
       <button
         onClick={() => setOpen(true)}
-        className="flex items-center gap-2 rounded-full border border-border bg-muted/50 px-3 py-1.5 text-xs text-muted-foreground transition hover:border-primary-200 hover:bg-muted"
+        className="group flex w-full max-w-xl items-center gap-2.5 rounded-full border border-border bg-card/60 px-4 py-2 text-sm text-muted-foreground shadow-sm transition hover:border-primary-300 hover:bg-card hover:shadow-md focus:border-primary-400 focus:outline-none"
         data-testid="global-search-trigger"
       >
-        <Search className="h-3.5 w-3.5" />
-        <span>Search</span>
-        <kbd className="ml-auto hidden rounded bg-background px-1.5 py-0.5 font-mono text-[10px] sm:inline-block">
+        <Search className="h-4 w-4 shrink-0 transition group-hover:text-primary-600" />
+        <span className="flex-1 truncate text-left text-muted-foreground">
+          Search tasks, documents, boards…
+        </span>
+        <kbd className="hidden shrink-0 rounded-md border border-border bg-background px-1.5 py-0.5 font-mono text-[10px] text-muted-foreground sm:inline-block">
           ⌘K
         </kbd>
       </button>

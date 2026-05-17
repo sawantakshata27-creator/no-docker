@@ -3,16 +3,19 @@ import {
   DndContext,
   DragOverlay,
   PointerSensor,
-  closestCorners,
+  KeyboardSensor,
+  pointerWithin,
+  rectIntersection,
   useDroppable,
   useSensor,
   useSensors,
+  type CollisionDetection,
   type DragCancelEvent,
   type DragEndEvent,
   type DragOverEvent,
   type DragStartEvent,
 } from "@dnd-kit/core";
-import { SortableContext, useSortable, verticalListSortingStrategy } from "@dnd-kit/sortable";
+import { SortableContext, sortableKeyboardCoordinates, useSortable, verticalListSortingStrategy } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
 import { Calendar, GripVertical, Plus } from "lucide-react";
 import { motion } from "framer-motion";
@@ -45,14 +48,22 @@ export function KanbanBoard({ boardId, userId, columns, tasks: initialTasks, onC
   }, [initialTasks, activeId]);
 
   const sensors = useSensors(
-    useSensor(PointerSensor, { 
-      activationConstraint: { 
-        distance: 1,
-        delay: 0,
-        tolerance: 2
-      } 
-    })
+    useSensor(PointerSensor, {
+      activationConstraint: {
+        distance: 6,
+      },
+    }),
+    useSensor(KeyboardSensor, {
+      coordinateGetter: sortableKeyboardCoordinates,
+    }),
   );
+
+  // Custom collision: prefer card targets, fall back to columns
+  const collisionDetection: CollisionDetection = (args) => {
+    const pointerCollisions = pointerWithin(args);
+    if (pointerCollisions.length > 0) return pointerCollisions;
+    return rectIntersection(args);
+  };
 
   const activeTask = tasks.find((task) => task.id === activeId) ?? null;
   const selectedTask = tasks.find((task) => task.id === selectedTaskId) ?? null;
@@ -68,7 +79,9 @@ export function KanbanBoard({ boardId, userId, columns, tasks: initialTasks, onC
 
   const onDragOver = (event: DragOverEvent) => {
     if (!activeId || !event.over) return;
-    setTasks((prev) => applyTaskMove(prev, activeId, String(event.over?.id), orderedColumns));
+    const overId = String(event.over.id);
+    if (overId === activeId) return;
+    setTasks((prev) => applyTaskMove(prev, activeId, overId, orderedColumns));
   };
 
   const onDragCancel = (_event: DragCancelEvent) => {
@@ -188,7 +201,7 @@ export function KanbanBoard({ boardId, userId, columns, tasks: initialTasks, onC
     <>
       <DndContext
         sensors={sensors}
-        collisionDetection={closestCorners}
+        collisionDetection={collisionDetection}
         onDragStart={onDragStart}
         onDragOver={onDragOver}
         onDragCancel={onDragCancel}

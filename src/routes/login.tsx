@@ -90,17 +90,19 @@ function LoginPage() {
   const handleGoogle = async () => {
     setLoading(true);
     try {
-      // Use Supabase OAuth directly for better compatibility
-      const { data, error } = await supabase.auth.signInWithOAuth({
+      // Redirect directly to /dashboard. Supabase client has detectSessionInUrl
+      // enabled by default, so it will automatically exchange the PKCE code
+      // (or pick up the implicit-flow token) on the destination page, and our
+      // auth-store onAuthStateChange listener will populate the session.
+      const { error } = await supabase.auth.signInWithOAuth({
         provider: "google",
         options: {
-          redirectTo: `${window.location.origin}/auth/callback`,
+          redirectTo: `${window.location.origin}/dashboard`,
         },
       });
-      
+
       if (error) throw error;
-      
-      // OAuth will redirect automatically, no need to handle here
+      // Browser will redirect to Google, then back. No further action here.
     } catch (err: any) {
       toast.error(err.message ?? "Google sign-in failed");
       setLoading(false);

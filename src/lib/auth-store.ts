@@ -59,6 +59,23 @@ export const useAuth = create<AuthState>((set, get) => ({
         set({ profile: null, org: null, membership: null });
       }
     });
+
+    // If we landed here from an OAuth redirect with a PKCE ?code= param,
+    // exchange it for a session before fetching state, then clean the URL.
+    if (typeof window !== "undefined") {
+      const url = new URL(window.location.href);
+      if (url.searchParams.get("code")) {
+        try {
+          await supabase.auth.exchangeCodeForSession(window.location.href);
+          url.searchParams.delete("code");
+          url.searchParams.delete("state");
+          window.history.replaceState({}, document.title, url.pathname + url.search + url.hash);
+        } catch (e) {
+          console.error("[auth] exchangeCodeForSession failed", e);
+        }
+      }
+    }
+
     const { data } = await supabase.auth.getSession();
     set({ session: data.session, user: data.session?.user ?? null, loading: false });
     if (data.session?.user) await get().refreshProfile();

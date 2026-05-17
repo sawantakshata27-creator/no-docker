@@ -3,7 +3,6 @@ import { useState, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { z } from "zod";
 import { supabase } from "@/integrations/supabase/client";
-import { lovable } from "@/integrations/lovable";
 import { useAuth } from "@/lib/auth-store";
 import { toast } from "sonner";
 import { Mail, Lock, Loader2, Sparkles, ArrowLeft } from "lucide-react";
@@ -91,10 +90,17 @@ function LoginPage() {
   const handleGoogle = async () => {
     setLoading(true);
     try {
-      const r = await lovable.auth.signInWithOAuth("google", {
-        redirect_uri: `${window.location.origin}/auth/callback`,
+      // Use Supabase OAuth directly for better compatibility
+      const { data, error } = await supabase.auth.signInWithOAuth({
+        provider: "google",
+        options: {
+          redirectTo: `${window.location.origin}/auth/callback`,
+        },
       });
-      if (r.error) throw r.error;
+      
+      if (error) throw error;
+      
+      // OAuth will redirect automatically, no need to handle here
     } catch (err: any) {
       toast.error(err.message ?? "Google sign-in failed");
       setLoading(false);
@@ -112,16 +118,25 @@ function LoginPage() {
         initial={{ opacity: 0 }}
         animate={{ opacity: 1 }}
         transition={{ duration: 0.6 }}
-        className="sidebar-gradient relative hidden flex-col justify-between overflow-hidden p-12 text-white md:flex"
+        className="relative hidden flex-col justify-between overflow-hidden p-12 text-white md:flex"
+        style={{
+          backgroundImage: "url('https://images.unsplash.com/photo-1666148670142-2f01b117e6e0?crop=entropy&cs=srgb&fm=jpg&ixid=M3w4NjAzMjh8MHwxfHNlYXJjaHwyfHxkaWdpdGFsJTIwd29ya2Zsb3d8ZW58MHx8fHwxNzc5MDEzMTYzfDA&ixlib=rb-4.1.0&q=85')",
+          backgroundSize: "cover",
+          backgroundPosition: "center",
+        }}
       >
+        {/* Dark overlay with gradient */}
+        <div className="absolute inset-0 bg-gradient-to-br from-primary-900/95 via-primary-800/90 to-primary-900/95" />
+        
+        {/* Animated gradient orbs */}
         <motion.div
-          className="orb orb-1 opacity-30"
+          className="orb orb-1 opacity-20"
           style={{ top: "10%", left: "-12%" }}
           animate={{ x: [0, 20, 0], y: [0, -15, 0] }}
           transition={{ duration: 12, repeat: Infinity, ease: "easeInOut" }}
         />
         <motion.div
-          className="orb orb-2 opacity-25"
+          className="orb orb-2 opacity-15"
           style={{ bottom: "-15%", right: "-15%" }}
           animate={{ x: [0, -25, 0], y: [0, 20, 0] }}
           transition={{ duration: 16, repeat: Infinity, ease: "easeInOut" }}
@@ -209,13 +224,41 @@ function LoginPage() {
         </motion.div>
       </motion.div>
 
-      <div className="flex items-center justify-center bg-surface p-6">
+      <div className="relative flex items-center justify-center bg-surface p-6 overflow-hidden">
+        {/* Animated background orbs for liquid effect */}
+        <motion.div
+          className="absolute top-0 left-0 h-96 w-96 rounded-full bg-gradient-to-br from-primary-300/20 to-accent2/20 blur-[120px]"
+          animate={{
+            x: [0, 50, 0],
+            y: [0, 30, 0],
+            scale: [1, 1.1, 1],
+          }}
+          transition={{
+            duration: 8,
+            repeat: Infinity,
+            ease: "easeInOut"
+          }}
+        />
+        <motion.div
+          className="absolute bottom-0 right-0 h-80 w-80 rounded-full bg-gradient-to-br from-accent2/20 to-primary-500/20 blur-[100px]"
+          animate={{
+            x: [0, -40, 0],
+            y: [0, -30, 0],
+            scale: [1, 1.15, 1],
+          }}
+          transition={{
+            duration: 10,
+            repeat: Infinity,
+            ease: "easeInOut"
+          }}
+        />
+        
         <motion.div
           key={mode}
           initial={{ opacity: 0, y: 12 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.4, ease: [0.16, 1, 0.3, 1] }}
-          className="card-glass w-full max-w-sm p-8"
+          className="relative w-full max-w-sm p-8 rounded-2xl liquid-glass"
         >
           <Link
             to="/"

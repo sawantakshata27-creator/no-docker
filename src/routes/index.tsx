@@ -416,21 +416,51 @@ function LandingPage() {
             viewport={{ once: true }}
             className="card-glass relative overflow-hidden p-10 md:p-14"
           >
-            <div className="grid gap-10 lg:grid-cols-[1fr_1.2fr] lg:items-center">
-              <div>
-                <h2 className="font-display text-3xl md:text-4xl">A workflow that <span className="italic text-primary-700">stays out of the way.</span></h2>
+            {/* Animated background gradient */}
+            <div className="pointer-events-none absolute inset-0 opacity-10">
+              <motion.div
+                className="absolute top-0 right-0 h-64 w-64 rounded-full bg-gradient-to-br from-primary-400 to-accent2 blur-3xl"
+                animate={{
+                  scale: [1, 1.2, 1],
+                  opacity: [0.3, 0.6, 0.3],
+                }}
+                transition={{
+                  duration: 5,
+                  repeat: Infinity,
+                  ease: "easeInOut"
+                }}
+              />
+            </div>
+
+            <div className="relative grid gap-10 lg:grid-cols-[1fr_1.2fr] lg:items-center">
+              <motion.div
+                initial={{ opacity: 0, x: -30 }}
+                whileInView={{ opacity: 1, x: 0 }}
+                viewport={{ once: true }}
+                transition={{ duration: 0.6 }}
+              >
+                <h2 className="font-display text-3xl md:text-4xl">
+                  A workflow that <span className="italic text-primary-700">stays out of the way.</span>
+                </h2>
                 <p className="mt-4 text-muted-foreground">
                   Six clean stages, optimistic drag-and-drop, deep linking on every card. Your team learns it in five minutes.
                 </p>
                 <ul className="mt-7 space-y-3 text-sm">
-                  {["Create → Preprocess → Associate", "Adjust → QA → Deliver", "Branch and assign without leaving the board"].map((t) => (
-                    <li key={t} className="flex items-center gap-2.5">
+                  {["Create → Preprocess → Associate", "Adjust → QA → Deliver", "Branch and assign without leaving the board"].map((t, i) => (
+                    <motion.li 
+                      key={t} 
+                      className="flex items-center gap-2.5"
+                      initial={{ opacity: 0, x: -20 }}
+                      whileInView={{ opacity: 1, x: 0 }}
+                      viewport={{ once: true }}
+                      transition={{ delay: i * 0.1, duration: 0.5 }}
+                    >
                       <CheckCircle2 className="h-4 w-4 text-primary-600" />
                       <span>{t}</span>
-                    </li>
+                    </motion.li>
                   ))}
                 </ul>
-              </div>
+              </motion.div>
 
               <div className="relative">
                 <div className="flex flex-wrap items-center justify-center gap-2 md:flex-nowrap">
@@ -441,11 +471,22 @@ function LandingPage() {
                         whileInView={{ opacity: 1, y: 0 }}
                         viewport={{ once: true }}
                         transition={{ delay: i * 0.07 }}
-                        className="rounded-full border border-primary-200 bg-card px-3.5 py-1.5 text-xs font-semibold text-primary-700 shadow-sm"
+                        whileHover={{ scale: 1.1, y: -5 }}
+                        className="rounded-full border border-primary-200 bg-card px-3.5 py-1.5 text-xs font-semibold text-primary-700 shadow-sm cursor-pointer transition-all hover:shadow-md hover:border-primary-400"
                       >
                         {stage}
                       </motion.div>
-                      {i < arr.length - 1 && <span className="text-muted-foreground/60">→</span>}
+                      {i < arr.length - 1 && (
+                        <motion.span 
+                          className="text-muted-foreground/60"
+                          initial={{ opacity: 0 }}
+                          whileInView={{ opacity: 1 }}
+                          viewport={{ once: true }}
+                          transition={{ delay: i * 0.07 + 0.1 }}
+                        >
+                          →
+                        </motion.span>
+                      )}
                     </div>
                   ))}
                 </div>
@@ -571,13 +612,25 @@ function LandingPage() {
       </section>
 
       <footer className="border-t border-border/60 bg-background/60 px-6 py-8 backdrop-blur">
-        <div className="mx-auto flex max-w-7xl flex-col items-center justify-between gap-3 md:flex-row">
+        <motion.div 
+          className="mx-auto flex max-w-7xl flex-col items-center justify-between gap-3 md:flex-row"
+          initial={{ opacity: 0, y: 20 }}
+          whileInView={{ opacity: 1, y: 0 }}
+          viewport={{ once: true }}
+          transition={{ duration: 0.6 }}
+        >
           <div className="flex items-center gap-2.5">
-            <div className="grid h-8 w-8 place-items-center rounded-xl bg-gradient-to-br from-primary-600 to-primary-800 font-display text-xs font-semibold text-white">2D</div>
+            <motion.div 
+              className="grid h-8 w-8 place-items-center rounded-xl bg-gradient-to-br from-primary-600 to-primary-800 font-display text-xs font-semibold text-white"
+              whileHover={{ rotate: 360, scale: 1.1 }}
+              transition={{ duration: 0.6 }}
+            >
+              2D
+            </motion.div>
             <span className="font-display text-sm font-semibold">2DS Workflow</span>
           </div>
           <p className="text-xs text-muted-foreground">© {new Date().getFullYear()} 2DS Workflow. Built for teams who ship.</p>
-        </div>
+        </motion.div>
       </footer>
     </div>
   );

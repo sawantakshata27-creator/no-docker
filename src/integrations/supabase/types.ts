@@ -58,6 +58,7 @@ export type Database = {
           name: string
           org_id: string | null
           owner_id: string
+          scheduled_delivery_date: string | null
         }
         Insert: {
           created_at?: string
@@ -67,6 +68,7 @@ export type Database = {
           name: string
           org_id?: string | null
           owner_id: string
+          scheduled_delivery_date?: string | null
         }
         Update: {
           created_at?: string
@@ -76,6 +78,7 @@ export type Database = {
           name?: string
           org_id?: string | null
           owner_id?: string
+          scheduled_delivery_date?: string | null
         }
         Relationships: [
           {

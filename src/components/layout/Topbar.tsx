@@ -176,16 +176,6 @@ export function Topbar() {
           {logoutConfirm && (
             <div className="fixed inset-0 z-40" onClick={() => setLogoutConfirm(false)} />
           )}
-          <motion.button
-            whileHover={{ scale: 1.06 }}
-            whileTap={{ scale: 0.92 }}
-            onClick={() => setLogoutConfirm((v) => !v)}
-            data-testid="signout-btn"
-            className="relative z-50 grid h-9 w-9 place-items-center rounded-full text-muted-foreground transition hover:bg-destructive/10 hover:text-destructive"
-            title="Sign out"
-          >
-            <LogOut className="h-4 w-4" />
-          </motion.button>
         </div>
       </motion.div>
     </motion.header>

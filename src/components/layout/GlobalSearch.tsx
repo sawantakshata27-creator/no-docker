@@ -1,7 +1,7 @@
-import { useState, useEffect, useCallback, useRef } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { useNavigate } from "@tanstack/react-router";
 import { motion, AnimatePresence } from "framer-motion";
-import { Search, FileText, ListChecks, Kanban, ArrowRight, Clock, ChevronLeft } from "lucide-react";
+import { Search, FileText, ListChecks, Kanban, ArrowRight, Clock } from "lucide-react";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/lib/auth-store";
@@ -16,12 +16,10 @@ interface SearchResult {
 
 export function GlobalSearch() {
   const [open, setOpen] = useState(false);
-  const [collapsed, setCollapsed] = useState(false);
   const [query, setQuery] = useState("");
   const [selected, setSelected] = useState(0);
   const navigate = useNavigate();
   const { org, user } = useAuth();
-  const searchBarRef = useRef<HTMLDivElement>(null);
 
   const { data: results = [] } = useQuery({
     queryKey: ["global-search", query, org?.id],
@@ -107,27 +105,6 @@ export function GlobalSearch() {
     }
   }, [open]);
 
-  // Auto-collapse when clicking outside
-  useEffect(() => {
-    const handleClickOutside = (event: MouseEvent) => {
-      if (
-        !collapsed &&
-        searchBarRef.current &&
-        !searchBarRef.current.contains(event.target as Node)
-      ) {
-        setCollapsed(true);
-      }
-    };
-
-    if (!collapsed) {
-      document.addEventListener("mousedown", handleClickOutside);
-    }
-
-    return () => {
-      document.removeEventListener("mousedown", handleClickOutside);
-    };
-  }, [collapsed]);
-
   const handleSelect = (result: SearchResult) => {
     navigate({ to: result.route });
     setOpen(false);
@@ -147,51 +124,23 @@ export function GlobalSearch() {
   };
 
   return (
-    <div ref={searchBarRef}>
+    <div>
       <motion.button
-        onClick={() => collapsed ? setCollapsed(false) : setOpen(true)}
+        onClick={() => setOpen(true)}
         layout
         transition={{ duration: 0.3, ease: [0.16, 1, 0.3, 1] }}
-        className={`group flex items-center gap-2.5 rounded-full border border-border bg-card/60 px-4 py-2 text-sm text-muted-foreground shadow-sm transition hover:border-primary-300 hover:bg-card hover:shadow-md focus:border-primary-400 focus:outline-none ${
-          collapsed ? 'w-auto' : 'w-full max-w-xl'
-        }`}
+        className="group flex w-full max-w-xl items-center gap-2.5 rounded-full border border-border bg-card/60 px-4 py-2 text-sm text-muted-foreground shadow-sm transition hover:border-primary-300 hover:bg-card hover:shadow-md focus:border-primary-400 focus:outline-none"
         data-testid="global-search-trigger"
       >
         <Search className="h-4 w-4 shrink-0 transition group-hover:text-primary-600" />
-        <AnimatePresence mode="wait">
-          {!collapsed && (
-            <motion.div
-              initial={{ opacity: 0, width: 0 }}
-              animate={{ opacity: 1, width: "auto" }}
-              exit={{ opacity: 0, width: 0 }}
-              transition={{ duration: 0.2 }}
-              className="flex flex-1 items-center gap-2.5 overflow-hidden"
-            >
-              <span className="flex-1 truncate text-left text-muted-foreground">
-                Search tasks, documents, boards…
-              </span>
-              <kbd className="hidden shrink-0 rounded-md border border-border bg-background px-1.5 py-0.5 font-mono text-[10px] text-muted-foreground sm:inline-block">
-                ⌘K
-              </kbd>
-            </motion.div>
-          )}
-        </AnimatePresence>
-        {!collapsed && (
-          <motion.button
-            initial={{ opacity: 0, scale: 0.8 }}
-            animate={{ opacity: 1, scale: 1 }}
-            whileHover={{ scale: 1.1 }}
-            whileTap={{ scale: 0.9 }}
-            onClick={(e) => {
-              e.stopPropagation();
-              setCollapsed(true);
-            }}
-            className="ml-1 grid h-5 w-5 shrink-0 place-items-center rounded-full transition hover:bg-muted"
-            title="Collapse search"
-          >
-            <ChevronLeft className="h-3.5 w-3.5" />
-          </motion.button>
-        )}
+        <div className="flex flex-1 items-center gap-2.5 overflow-hidden">
+          <span className="flex-1 truncate text-left text-muted-foreground">
+            Search tasks, documents, boards…
+          </span>
+          <kbd className="hidden shrink-0 rounded-md border border-border bg-background px-1.5 py-0.5 font-mono text-[10px] text-muted-foreground sm:inline-block">
+            ⌘K
+          </kbd>
+        </div>
       </motion.button>
 
       <AnimatePresence>

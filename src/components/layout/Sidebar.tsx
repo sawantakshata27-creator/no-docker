@@ -106,9 +106,11 @@ export function Sidebar() {
             return (
               <>
                 {activeIndex >= 0 && (
-                  <div
+                  <motion.div
                     className="sidebar-cutout"
-                    style={{ top: `${activeIndex * 48}px` }}
+                    initial={false}
+                    animate={{ top: `${activeIndex * 48}px` }}
+                    transition={{ type: "spring", stiffness: 300, damping: 30 }}
                   />
                 )}
                 {NAV.map((item, i) => {
@@ -119,19 +121,19 @@ export function Sidebar() {
                       to={item.to}
                       title={collapsed ? item.label : undefined}
                       data-testid={`nav-${item.to.replace("/", "")}`}
-                      className={`group relative z-10 flex h-[48px] items-center gap-3.5 px-5 text-sm font-medium transition-all duration-200 ${
+                      className={`group relative z-10 flex h-[48px] items-center gap-3.5 px-5 text-sm font-semibold transition-all duration-200 ${
                         active
                           ? "text-foreground"
-                          : "text-white/70 hover:text-white hover:translate-x-1"
+                          : "text-white/65 hover:text-white/95 hover:translate-x-0.5"
                       }`}
                     >
                       <motion.span 
-                        whileHover={{ scale: active ? 1 : 1.1 }} 
+                        whileHover={{ scale: active ? 1 : 1.08 }} 
                         className="shrink-0"
                       >
                         <item.icon
                           style={{ width: 20, height: 20 }}
-                          strokeWidth={active ? 2.5 : 2.2}
+                          strokeWidth={active ? 2.8 : 2}
                         />
                       </motion.span>
                       <AnimatePresence>

@@ -194,7 +194,7 @@ export function KanbanBoard({ boardId, userId, columns, tasks: initialTasks, onC
         onDragCancel={onDragCancel}
         onDragEnd={onDragEnd}
       >
-        <div className="flex gap-4 overflow-x-auto pb-4">
+        <div className="flex gap-5 overflow-x-auto pb-6">
           {orderedColumns.map((column) => {
             const items = tasks
               .filter((task) => task.column_id === column.id)
@@ -211,7 +211,7 @@ export function KanbanBoard({ boardId, userId, columns, tasks: initialTasks, onC
                   items={items.map((task) => task.id)}
                   strategy={verticalListSortingStrategy}
                 >
-                  <div className="min-h-[40px] space-y-2">
+                  <div className="min-h-[40px] space-y-2.5">
                     {items.map((task) => (
                       <SortableTaskCard
                         key={task.id}
@@ -224,7 +224,7 @@ export function KanbanBoard({ boardId, userId, columns, tasks: initialTasks, onC
                 </SortableContext>
 
                 {addingTo === column.id ? (
-                  <div className="mt-2 space-y-2">
+                  <div className="mt-3 space-y-2">
                     <textarea
                       autoFocus
                       value={newTitle}
@@ -239,22 +239,22 @@ export function KanbanBoard({ boardId, userId, columns, tasks: initialTasks, onC
                           setNewTitle("");
                         }
                       }}
-                      className="input-field min-h-[60px] text-sm"
+                      className="input-field min-h-[70px] text-sm resize-none"
                       placeholder="What needs doing?"
                     />
                     <div className="flex gap-2">
                       <button
                         onClick={() => addTask(column.id)}
-                        className="btn-primary py-1.5 text-xs"
+                        className="btn-primary py-2 text-xs font-semibold"
                       >
-                        Add
+                        Add Card
                       </button>
                       <button
                         onClick={() => {
                           setAddingTo(null);
                           setNewTitle("");
                         }}
-                        className="rounded-lg px-3 py-1.5 text-xs text-muted-foreground hover:bg-muted"
+                        className="rounded-lg px-4 py-2 text-xs font-medium text-muted-foreground hover:bg-muted hover:text-foreground transition-colors"
                       >
                         Cancel
                       </button>
@@ -263,9 +263,9 @@ export function KanbanBoard({ boardId, userId, columns, tasks: initialTasks, onC
                 ) : (
                   <button
                     onClick={() => setAddingTo(column.id)}
-                    className="mt-2 flex w-full items-center gap-2 rounded-lg px-2 py-1.5 text-xs text-muted-foreground hover:bg-muted hover:text-foreground"
+                    className="mt-3 flex w-full items-center gap-2 rounded-lg px-3 py-2 text-xs font-medium text-muted-foreground hover:bg-muted hover:text-foreground transition-colors"
                   >
-                    <Plus className="h-3.5 w-3.5" /> Add card
+                    <Plus className="h-4 w-4" /> Add card
                   </button>
                 )}
               </ColumnDroppable>
@@ -398,13 +398,13 @@ function ColumnDroppable({
   return (
     <div
       ref={setNodeRef}
-      className={`flex w-[300px] shrink-0 flex-col rounded-2xl border border-border bg-muted/40 p-3 transition-all duration-150 ${isOver ? "ring-2 ring-primary-500/50 bg-primary-50/60 border-primary-300" : ""}`}
+      className={`flex w-[320px] shrink-0 flex-col rounded-2xl border bg-muted/30 p-4 transition-all duration-150 ${isOver ? "ring-2 ring-primary-500/50 bg-primary-50/60 border-primary-300 shadow-lg" : "border-border shadow-sm"}`}
     >
-      <div className="mb-3 flex items-center justify-between px-1">
-        <div className="flex items-center gap-2">
-          <span className="h-2.5 w-2.5 rounded-full" style={{ background: color ?? "#94a3b8" }} />
-          <span className="text-sm font-semibold">{name}</span>
-          <span className="rounded-full bg-card px-1.5 py-0.5 text-[10px] text-muted-foreground">
+      <div className="mb-4 flex items-center justify-between px-1">
+        <div className="flex items-center gap-2.5">
+          <span className="h-3 w-3 rounded-full shadow-sm" style={{ background: color ?? "#94a3b8" }} />
+          <span className="text-sm font-semibold tracking-tight">{name}</span>
+          <span className="rounded-full bg-card px-2 py-0.5 text-xs font-medium text-muted-foreground shadow-sm">
             {count}
           </span>
         </div>
@@ -502,15 +502,15 @@ function TaskCard({
         layout: { duration: 0.2, ease: [0.25, 1, 0.5, 1] }
       }}
       onClick={editing ? undefined : onOpen}
-      className={`rounded-xl border bg-card p-3 shadow-sm transition-all duration-150 ${onOpen && !editing ? "cursor-pointer" : ""} ${selected ? "border-primary-500 ring-2 ring-primary-500/20" : "border-border"} ${dragging ? "rotate-2 scale-105 shadow-2xl ring-2 ring-primary-500/50" : "hover:border-primary-400 hover:shadow-md"}`}
+      className={`group rounded-xl border bg-card p-3.5 shadow-sm transition-all duration-150 ${onOpen && !editing ? "cursor-pointer" : ""} ${selected ? "border-primary-500 ring-2 ring-primary-500/25 shadow-md" : "border-border"} ${dragging ? "rotate-2 scale-105 shadow-2xl ring-2 ring-primary-500/50" : "hover:border-primary-400 hover:shadow-md hover:scale-[1.01]"}`}
     >
-      <div className="flex items-start gap-2">
+      <div className="flex items-start gap-2.5">
         {dragHandle ?? <span className="mt-0.5 h-6 w-6" />}
         <div className="min-w-0 flex-1">
           {editing ? (
             <input
               ref={inputRef}
-              className="input-field py-1 text-sm font-medium"
+              className="input-field py-1.5 text-sm font-medium"
               value={draft}
               autoFocus
               onChange={(e) => setDraft(e.target.value)}
@@ -523,7 +523,7 @@ function TaskCard({
             />
           ) : (
             <p
-              className="text-sm font-medium leading-snug"
+              className="text-[0.9375rem] font-medium leading-snug text-foreground"
               onDoubleClick={(e) => {
                 e.stopPropagation();
                 setEditing(true);
@@ -535,19 +535,19 @@ function TaskCard({
             </p>
           )}
           {task.description && !editing ? (
-            <p className="mt-1 line-clamp-2 text-xs text-muted-foreground">{task.description}</p>
+            <p className="mt-1.5 line-clamp-2 text-xs leading-relaxed text-muted-foreground">{task.description}</p>
           ) : null}
-          <div className="mt-3 flex flex-wrap items-center gap-1.5">
-            <span className={`rounded border px-1.5 py-0.5 text-[10px] font-medium uppercase ${priorityClass(task.priority)}`}>
+          <div className="mt-3 flex flex-wrap items-center gap-2">
+            <span className={`rounded-md border px-2 py-1 text-[10px] font-semibold uppercase tracking-wide ${priorityClass(task.priority)}`}>
               {task.priority}
             </span>
             {task.process_stage ? (
-              <span className="rounded bg-primary-50 px-1.5 py-0.5 text-[10px] font-medium text-primary-700">
+              <span className="rounded-md bg-primary-50 px-2 py-1 text-[10px] font-semibold text-primary-700 ring-1 ring-primary-200">
                 {task.process_stage}
               </span>
             ) : null}
             {task.due_date ? (
-              <span className="ml-auto inline-flex items-center gap-1 text-[10px] text-muted-foreground">
+              <span className="ml-auto inline-flex items-center gap-1.5 text-[10px] font-medium text-muted-foreground">
                 <Calendar className="h-3 w-3" /> {new Date(task.due_date).toLocaleDateString()}
               </span>
             ) : null}

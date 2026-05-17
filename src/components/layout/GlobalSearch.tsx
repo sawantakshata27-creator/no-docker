@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useRef } from "react";
 import { useNavigate } from "@tanstack/react-router";
 import { motion, AnimatePresence } from "framer-motion";
 import { Search, FileText, ListChecks, Kanban, ArrowRight, Clock, ChevronLeft } from "lucide-react";
@@ -21,6 +21,7 @@ export function GlobalSearch() {
   const [selected, setSelected] = useState(0);
   const navigate = useNavigate();
   const { org, user } = useAuth();
+  const searchBarRef = useRef<HTMLDivElement>(null);
 
   const { data: results = [] } = useQuery({
     queryKey: ["global-search", query, org?.id],
@@ -106,6 +107,27 @@ export function GlobalSearch() {
     }
   }, [open]);
 
+  // Auto-collapse when clicking outside
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (
+        !collapsed &&
+        searchBarRef.current &&
+        !searchBarRef.current.contains(event.target as Node)
+      ) {
+        setCollapsed(true);
+      }
+    };
+
+    if (!collapsed) {
+      document.addEventListener("mousedown", handleClickOutside);
+    }
+
+    return () => {
+      document.removeEventListener("mousedown", handleClickOutside);
+    };
+  }, [collapsed]);
+
   const handleSelect = (result: SearchResult) => {
     navigate({ to: result.route });
     setOpen(false);
@@ -125,7 +147,7 @@ export function GlobalSearch() {
   };
 
   return (
-    <>
+    <div ref={searchBarRef}>
       <motion.button
         onClick={() => collapsed ? setCollapsed(false) : setOpen(true)}
         layout
@@ -303,6 +325,6 @@ export function GlobalSearch() {
           </>
         )}
       </AnimatePresence>
-    </>
+    </div>
   );
 }

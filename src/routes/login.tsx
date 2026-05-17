@@ -224,26 +224,16 @@ function LoginPage() {
         </motion.div>
       </motion.div>
 
-      <div className="relative flex items-center justify-center bg-surface p-6 overflow-hidden">
-        {/* Animated background orbs for liquid effect */}
+      <div className="relative flex items-center justify-center p-6 overflow-hidden min-h-screen">
+        {/* Gradient mesh background */}
+        <div className="absolute inset-0 bg-gradient-to-br from-primary-50 via-surface to-accent2/10" />
+        
+        {/* Animated floating orbs for depth */}
         <motion.div
-          className="absolute top-0 left-0 h-96 w-96 rounded-full bg-gradient-to-br from-primary-300/20 to-accent2/20 blur-[120px]"
+          className="absolute top-[10%] left-[15%] h-[500px] w-[500px] rounded-full bg-gradient-to-br from-primary-400/30 to-primary-600/20 blur-[140px]"
           animate={{
-            x: [0, 50, 0],
-            y: [0, 30, 0],
-            scale: [1, 1.1, 1],
-          }}
-          transition={{
-            duration: 8,
-            repeat: Infinity,
-            ease: "easeInOut"
-          }}
-        />
-        <motion.div
-          className="absolute bottom-0 right-0 h-80 w-80 rounded-full bg-gradient-to-br from-accent2/20 to-primary-500/20 blur-[100px]"
-          animate={{
-            x: [0, -40, 0],
-            y: [0, -30, 0],
+            x: [0, 60, 0],
+            y: [0, 40, 0],
             scale: [1, 1.15, 1],
           }}
           transition={{
@@ -252,13 +242,46 @@ function LoginPage() {
             ease: "easeInOut"
           }}
         />
+        <motion.div
+          className="absolute bottom-[5%] right-[10%] h-[450px] w-[450px] rounded-full bg-gradient-to-br from-accent2/30 to-primary-500/25 blur-[130px]"
+          animate={{
+            x: [0, -50, 0],
+            y: [0, -35, 0],
+            scale: [1, 1.2, 1],
+          }}
+          transition={{
+            duration: 12,
+            repeat: Infinity,
+            ease: "easeInOut"
+          }}
+        />
+        <motion.div
+          className="absolute top-[40%] right-[25%] h-[350px] w-[350px] rounded-full bg-gradient-to-br from-primary-300/20 to-accent2/15 blur-[110px]"
+          animate={{
+            x: [0, 35, 0],
+            y: [0, -25, 0],
+            scale: [1, 1.1, 1],
+          }}
+          transition={{
+            duration: 14,
+            repeat: Infinity,
+            ease: "easeInOut",
+            delay: 1
+          }}
+        />
+        
+        {/* Subtle grid pattern */}
+        <div className="absolute inset-0 opacity-[0.03]" style={{
+          backgroundImage: 'radial-gradient(circle, var(--color-primary-600) 1px, transparent 1px)',
+          backgroundSize: '40px 40px'
+        }} />
         
         <motion.div
           key={mode}
           initial={{ opacity: 0, y: 12 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.4, ease: [0.16, 1, 0.3, 1] }}
-          className="relative w-full max-w-sm p-8 rounded-2xl liquid-glass"
+          className="relative w-full max-w-sm liquid-glass"
         >
           <Link
             to="/"

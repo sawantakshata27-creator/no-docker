@@ -1,10 +1,39 @@
-import React from 'react';
+import React, { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
+import apiClient from '../lib/apiClient';
 
 const Dashboard = () => {
   const { user, signOut } = useAuth();
   const navigate = useNavigate();
+  const [statusChecks, setStatusChecks] = useState([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    fetchStatusChecks();
+  }, []);
+
+  const fetchStatusChecks = async () => {
+    try {
+      const response = await apiClient.get('/status');
+      setStatusChecks(response.data);
+    } catch (error) {
+      console.error('Failed to fetch status checks:', error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const createStatusCheck = async () => {
+    try {
+      await apiClient.post('/status', {
+        client_name: `Test Client ${new Date().toLocaleTimeString()}`
+      });
+      fetchStatusChecks();
+    } catch (error) {
+      console.error('Failed to create status check:', error);
+    }
+  };
 
   const handleSignOut = async () => {
     try {
@@ -140,19 +169,40 @@ const Dashboard = () => {
 
         {/* Recent Activity */}
         <div className="bg-white rounded-lg shadow-sm p-6">
-          <h3 className="text-lg font-semibold text-gray-900 mb-4">Recent Activity</h3>
-          <div className="space-y-4">
-            {[1, 2, 3].map((item) => (
-              <div key={item} className="flex items-start border-b border-gray-100 pb-4 last:border-0">
-                <div className="w-2 h-2 bg-blue-600 rounded-full mt-2 mr-3"></div>
-                <div className="flex-1">
-                  <p className="text-sm font-medium text-gray-900">Activity {item}</p>
-                  <p className="text-sm text-gray-600 mt-1">Sample activity description</p>
-                  <p className="text-xs text-gray-400 mt-1">2 hours ago</p>
-                </div>
-              </div>
-            ))}
+          <div className="flex justify-between items-center mb-4">
+            <h3 className="text-lg font-semibold text-gray-900">Recent Status Checks</h3>
+            <button
+              onClick={createStatusCheck}
+              className="px-4 py-2 bg-blue-600 text-white text-sm font-medium rounded-lg hover:bg-blue-700 transition-colors"
+              data-testid="create-status-button"
+            >
+              Create Status Check
+            </button>
           </div>
+          
+          {loading ? (
+            <div className="text-center py-8">
+              <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mx-auto"></div>
+            </div>
+          ) : statusChecks.length > 0 ? (
+            <div className="space-y-4">
+              {statusChecks.map((check, index) => (
+                <div key={check.id || index} className="flex items-start border-b border-gray-100 pb-4 last:border-0">
+                  <div className="w-2 h-2 bg-blue-600 rounded-full mt-2 mr-3"></div>
+                  <div className="flex-1">
+                    <p className="text-sm font-medium text-gray-900">{check.client_name}</p>
+                    <p className="text-xs text-gray-400 mt-1">
+                      {new Date(check.timestamp).toLocaleString()}
+                    </p>
+                  </div>
+                </div>
+              ))}
+            </div>
+          ) : (
+            <div className="text-center py-8 text-gray-500">
+              <p>No status checks yet. Click "Create Status Check" to add one.</p>
+            </div>
+          )}
         </div>
       </main>
     </div>

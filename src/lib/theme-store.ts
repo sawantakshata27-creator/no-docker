@@ -61,7 +61,7 @@ function runThemeTransition(
         clipPath: next ? [clipFrom, clipTo] : [clipTo, clipFrom],
       },
       {
-        duration: 650,
+        duration: 450,
         easing: "cubic-bezier(0.4, 0, 0.2, 1)",
         pseudoElement: next ? "::view-transition-new(root)" : "::view-transition-old(root)",
       },

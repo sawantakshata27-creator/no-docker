@@ -25,8 +25,47 @@ dist-ssr
 !.vscode/extensions.json
 .idea
 .DS_Store
+<<<<<<< HEAD
 *.suo
 *.ntvs*
 *.njsproj
 *.sln
 *.sw?
+=======
+*.pem
+
+# Python
+__pycache__/
+*pyc*
+venv/
+.venv/
+
+# Development tools
+chainlit.md
+.chainlit
+.ipynb_checkpoints/
+.ac
+
+# Deployment
+.vercel
+
+# Data and databases
+agenthub/agents/youtube/db
+
+# Archive files and large assets
+**/*.zip
+**/*.tar.gz
+**/*.tar
+**/*.tgz
+*.pack
+*.deb
+*.dylib
+
+# Build caches
+.cache/
+
+memory/test_credentials.md
+
+# Mobile development
+android-sdk/node_modules/@cloudflare/workerd-linux-arm64/bin/workerd
+>>>>>>> 7c62d9c (feat: optimize theme transition, redesign login with liquid glass effect, fix Google OAuth)

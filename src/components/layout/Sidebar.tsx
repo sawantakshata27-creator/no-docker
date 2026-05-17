@@ -31,9 +31,9 @@ export function Sidebar() {
 
   return (
     <motion.aside
-      animate={{ width: collapsed ? 76 : 248 }}
-      transition={{ duration: 0.28, ease: [0.16, 1, 0.3, 1] }}
-      className="sidebar-gradient sticky top-0 z-10 flex h-screen flex-col text-white"
+      animate={{ width: collapsed ? 83 : 256 }}
+      transition={{ duration: 0.3, ease: [0.16, 1, 0.3, 1] }}
+      className="sidebar-gradient sticky top-0 z-10 flex h-screen flex-col text-white shadow-2xl"
       data-testid="app-sidebar"
     >
       <div className="relative z-10 flex h-16 shrink-0 items-center gap-3 border-b border-white/10 px-4">
@@ -108,7 +108,7 @@ export function Sidebar() {
                 {activeIndex >= 0 && (
                   <div
                     className="sidebar-cutout"
-                    style={{ top: `${activeIndex * 44}px` }}
+                    style={{ top: `${activeIndex * 48}px` }}
                   />
                 )}
                 {NAV.map((item, i) => {
@@ -119,25 +119,28 @@ export function Sidebar() {
                       to={item.to}
                       title={collapsed ? item.label : undefined}
                       data-testid={`nav-${item.to.replace("/", "")}`}
-                      className={`group relative z-10 flex h-[44px] items-center gap-3 pl-5 pr-3 text-sm transition-colors duration-200 ${
+                      className={`group relative z-10 flex h-[48px] items-center gap-3.5 px-5 text-sm font-medium transition-all duration-200 ${
                         active
-                          ? "font-medium text-foreground"
-                          : "text-white/65 hover:text-white"
+                          ? "text-foreground"
+                          : "text-white/70 hover:text-white hover:translate-x-1"
                       }`}
                     >
-                      <motion.span whileHover={{ x: active ? 0 : 2 }} className="shrink-0">
+                      <motion.span 
+                        whileHover={{ scale: active ? 1 : 1.1 }} 
+                        className="shrink-0"
+                      >
                         <item.icon
-                          style={{ width: 18, height: 18 }}
-                          strokeWidth={active ? 2.4 : 2}
+                          style={{ width: 20, height: 20 }}
+                          strokeWidth={active ? 2.5 : 2.2}
                         />
                       </motion.span>
                       <AnimatePresence>
                         {!collapsed && (
                           <motion.span
-                            initial={{ opacity: 0 }}
-                            animate={{ opacity: 1 }}
-                            exit={{ opacity: 0 }}
-                            transition={{ duration: 0.15 }}
+                            initial={{ opacity: 0, x: -4 }}
+                            animate={{ opacity: 1, x: 0 }}
+                            exit={{ opacity: 0, x: -4 }}
+                            transition={{ duration: 0.2 }}
                             className="truncate"
                           >
                             {item.label}
@@ -156,16 +159,17 @@ export function Sidebar() {
       <motion.button
         onClick={() => setCollapsed((c) => !c)}
         data-testid="sidebar-collapse-btn"
-        whileHover={{ scale: 1.02 }}
-        whileTap={{ scale: 0.97 }}
-        className="relative z-10 mx-2 mb-3 flex shrink-0 items-center justify-center gap-2 rounded-xl border border-white/15 bg-gradient-to-br from-white/10 to-white/5 px-3 py-2.5 text-xs font-semibold text-white/70 shadow-lg backdrop-blur transition-all hover:border-white/25 hover:from-white/15 hover:to-white/10 hover:text-white"
+        whileHover={{ scale: 1.05, x: collapsed ? 2 : -2 }}
+        whileTap={{ scale: 0.95 }}
+        className="relative z-10 mx-3 mb-4 flex shrink-0 items-center justify-center gap-2 rounded-xl border border-white/20 bg-gradient-to-br from-white/[0.15] to-white/[0.08] px-3 py-3 text-xs font-bold text-white shadow-xl backdrop-blur-sm transition-all hover:border-white/30 hover:from-white/20 hover:to-white/[0.12] hover:shadow-2xl"
+        title={collapsed ? "Expand sidebar" : "Collapse sidebar"}
       >
         {collapsed ? (
-          <ChevronRight className="h-4 w-4" strokeWidth={2.5} />
+          <ChevronRight className="h-4 w-4" strokeWidth={2.8} />
         ) : (
           <>
-            <ChevronLeft className="h-4 w-4" strokeWidth={2.5} />
-            <span>Collapse</span>
+            <ChevronLeft className="h-4 w-4" strokeWidth={2.8} />
+            <span className="tracking-wide">COLLAPSE</span>
           </>
         )}
       </motion.button>

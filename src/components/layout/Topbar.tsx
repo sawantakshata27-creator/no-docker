@@ -8,6 +8,7 @@ import { useTheme } from "@/lib/theme-store";
 import { UserAvatar } from "@/components/ui/UserAvatar";
 import { NotificationsPanel } from "./NotificationsPanel";
 import { GlobalSearch } from "./GlobalSearch";
+import { OrgSwitcher } from "./OrgSwitcher";
 
 export function Topbar() {
   const { profile, org, signOut } = useAuth();
@@ -51,6 +52,8 @@ export function Topbar() {
       </div>
 
       <GlobalSearch />
+
+      <OrgSwitcher />
 
       <motion.div
         className="ml-auto flex items-center gap-1.5"

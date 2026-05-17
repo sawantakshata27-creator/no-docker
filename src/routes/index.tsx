@@ -1,5 +1,6 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
-import { motion } from "framer-motion";
+import { motion, useMotionValue, useTransform } from "framer-motion";
+import { useState } from "react";
 import {
   ArrowRight,
   CheckCircle2,
@@ -11,7 +12,9 @@ import {
   Globe,
   TrendingUp,
   PlayCircle,
+  Rocket,
 } from "lucide-react";
+import { ThemeToggle } from "@/components/ui/theme-toggle";
 
 export const Route = createFileRoute("/")({ component: LandingPage });
 
@@ -25,20 +28,89 @@ const FEATURES = [
 ];
 
 function LandingPage() {
+  const [isHoveringCTA, setIsHoveringCTA] = useState(false);
+  const mouseX = useMotionValue(0);
+  const mouseY = useMotionValue(0);
+
+  const handleMouseMove = (e: React.MouseEvent) => {
+    const rect = e.currentTarget.getBoundingClientRect();
+    mouseX.set(e.clientX - rect.left);
+    mouseY.set(e.clientY - rect.top);
+  };
+
   return (
     <div className="relative min-h-screen overflow-hidden bg-surface text-foreground">
-      {/* Backdrop orbs */}
-      <div className="pointer-events-none absolute -top-40 -left-40 h-[520px] w-[520px] rounded-full bg-gradient-to-br from-primary-300/40 to-primary-600/30 blur-[120px] animate-pulse-soft" />
-      <div className="pointer-events-none absolute top-1/3 -right-32 h-[440px] w-[440px] rounded-full bg-gradient-to-br from-accent2/40 to-primary-200/30 blur-[140px]" />
-      <div className="pointer-events-none absolute bottom-0 left-1/4 h-[380px] w-[380px] rounded-full bg-gradient-to-tr from-primary-200/40 to-transparent blur-[120px]" />
+      {/* Enhanced Backdrop orbs with parallax */}
+      <motion.div 
+        className="pointer-events-none absolute -top-40 -left-40 h-[520px] w-[520px] rounded-full bg-gradient-to-br from-primary-300/40 to-primary-600/30 blur-[120px]"
+        animate={{
+          y: [0, 30, 0],
+          scale: [1, 1.05, 1],
+        }}
+        transition={{
+          duration: 8,
+          repeat: Infinity,
+          ease: "easeInOut"
+        }}
+      />
+      <motion.div 
+        className="pointer-events-none absolute top-1/3 -right-32 h-[440px] w-[440px] rounded-full bg-gradient-to-br from-accent2/40 to-primary-200/30 blur-[140px]"
+        animate={{
+          x: [0, 40, 0],
+          y: [0, -30, 0],
+        }}
+        transition={{
+          duration: 10,
+          repeat: Infinity,
+          ease: "easeInOut"
+        }}
+      />
+      <motion.div 
+        className="pointer-events-none absolute bottom-0 left-1/4 h-[380px] w-[380px] rounded-full bg-gradient-to-tr from-primary-200/40 to-transparent blur-[120px]"
+        animate={{
+          x: [0, -30, 0],
+          scale: [1, 1.08, 1],
+        }}
+        transition={{
+          duration: 12,
+          repeat: Infinity,
+          ease: "easeInOut"
+        }}
+      />
+      
+      {/* Floating particles */}
+      {[...Array(6)].map((_, i) => (
+        <motion.div
+          key={i}
+          className="pointer-events-none absolute h-2 w-2 rounded-full bg-primary-400/30"
+          style={{
+            left: `${20 + i * 15}%`,
+            top: `${30 + i * 10}%`,
+          }}
+          animate={{
+            y: [0, -100, 0],
+            opacity: [0.2, 0.6, 0.2],
+          }}
+          transition={{
+            duration: 4 + i,
+            repeat: Infinity,
+            ease: "easeInOut",
+            delay: i * 0.5,
+          }}
+        />
+      ))}
 
       {/* Nav */}
       <nav className="fixed inset-x-0 top-0 z-50 border-b border-border/60 bg-background/60 backdrop-blur-xl">
         <div className="mx-auto flex max-w-7xl items-center justify-between px-6 py-3.5">
           <Link to="/" className="flex items-center gap-2.5" data-testid="landing-logo">
-            <div className="grid h-10 w-10 place-items-center rounded-2xl bg-gradient-to-br from-primary-600 to-primary-800 font-display text-sm font-semibold text-white shadow-lg shadow-primary-600/30">
+            <motion.div 
+              className="grid h-10 w-10 place-items-center rounded-2xl bg-gradient-to-br from-primary-600 to-primary-800 font-display text-sm font-semibold text-white shadow-lg shadow-primary-600/30"
+              whileHover={{ rotate: 360, scale: 1.1 }}
+              transition={{ duration: 0.6, ease: "easeInOut" }}
+            >
               2D
-            </div>
+            </motion.div>
             <span className="font-display text-lg font-semibold tracking-tight">2DS Workflow</span>
           </Link>
 
@@ -48,14 +120,17 @@ function LandingPage() {
             <a href="#pricing" className="nav-link text-sm">Pricing</a>
           </div>
 
-          <Link
-            to="/login"
-            className="btn-primary inline-flex items-center gap-2"
-            data-testid="landing-get-started-btn"
-          >
-            Get Started
-            <ArrowRight className="h-4 w-4" />
-          </Link>
+          <div className="flex items-center gap-3">
+            <ThemeToggle />
+            <Link
+              to="/login"
+              className="btn-primary inline-flex items-center gap-2"
+              data-testid="landing-get-started-btn"
+            >
+              Get Started
+              <ArrowRight className="h-4 w-4" />
+            </Link>
+          </div>
         </div>
       </nav>
 
@@ -63,33 +138,106 @@ function LandingPage() {
       <section className="relative px-6 pt-36 pb-24">
         <div className="mx-auto max-w-7xl">
           <div className="grid items-center gap-14 lg:grid-cols-[1.05fr_1fr]">
-            <motion.div initial={{ opacity: 0, y: 24 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.7, ease: [0.16, 1, 0.3, 1] }}>
-              <div className="mb-6 inline-flex items-center gap-2 rounded-full border border-primary-200/70 bg-primary-50/60 px-3.5 py-1.5 backdrop-blur">
-                <Sparkles className="h-3.5 w-3.5 text-primary-700" />
+            <motion.div 
+              initial={{ opacity: 0, y: 24 }} 
+              animate={{ opacity: 1, y: 0 }} 
+              transition={{ duration: 0.7, ease: [0.16, 1, 0.3, 1] }}
+            >
+              <motion.div 
+                className="mb-6 inline-flex items-center gap-2 rounded-full border border-primary-200/70 bg-primary-50/60 px-3.5 py-1.5 backdrop-blur"
+                initial={{ scale: 0.8, opacity: 0 }}
+                animate={{ scale: 1, opacity: 1 }}
+                transition={{ duration: 0.5, delay: 0.2 }}
+                whileHover={{ scale: 1.05 }}
+              >
+                <motion.div
+                  animate={{ rotate: 360 }}
+                  transition={{ duration: 3, repeat: Infinity, ease: "linear" }}
+                >
+                  <Sparkles className="h-3.5 w-3.5 text-primary-700" />
+                </motion.div>
                 <span className="text-[11px] font-semibold uppercase tracking-[0.18em] text-primary-700">
-                  Workflow OS for document teams
+                  Kanban-powered workflow system
                 </span>
-              </div>
+              </motion.div>
 
               <h1 className="font-display text-[3.25rem] leading-[1.02] tracking-tight md:text-[4.25rem]">
-                <span className="block">Ship documents.</span>
-                <span className="block italic text-primary-700">Skip the chaos.</span>
+                <motion.span 
+                  className="block"
+                  initial={{ opacity: 0, y: 20 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ duration: 0.6, delay: 0.3 }}
+                >
+                  Document workflow.
+                </motion.span>
+                <motion.span 
+                  className="block italic text-primary-700"
+                  initial={{ opacity: 0, y: 20 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ duration: 0.6, delay: 0.5 }}
+                >
+                  Chaos eliminated.
+                </motion.span>
               </h1>
 
-              <p className="mt-7 max-w-xl text-[1.0625rem] leading-relaxed text-muted-foreground">
-                A calm, fast workspace for moving every sign through creation, QA and delivery. Kanban,
-                analytics, and team controls — without the tab juggling.
-              </p>
+              <motion.p 
+                className="mt-7 max-w-xl text-[1.0625rem] leading-relaxed text-muted-foreground"
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                transition={{ duration: 0.6, delay: 0.7 }}
+              >
+                A powerful workspace for moving documents through creation, QA and delivery. 
+                Kanban boards, real-time analytics, and team controls — all in one place.
+              </motion.p>
 
-              <div className="mt-10 flex flex-wrap items-center gap-4">
+              <motion.div 
+                className="mt-10 flex flex-wrap items-center gap-4"
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ duration: 0.6, delay: 0.9 }}
+              >
                 <Link
                   to="/login"
-                  className="btn-primary inline-flex items-center gap-2 text-base"
+                  className="group relative inline-flex items-center gap-2 overflow-hidden rounded-full bg-gradient-to-r from-primary-600 via-primary-700 to-primary-800 px-8 py-4 text-base font-semibold text-white shadow-2xl shadow-primary-600/50 transition-all hover:shadow-primary-600/70 hover:scale-105 active:scale-95"
                   data-testid="hero-get-started-btn"
+                  onMouseEnter={() => setIsHoveringCTA(true)}
+                  onMouseLeave={() => setIsHoveringCTA(false)}
                 >
-                  Get Started
-                  <ArrowRight className="h-4 w-4" />
+                  {/* Animated gradient overlay */}
+                  <motion.div
+                    className="absolute inset-0 bg-gradient-to-r from-accent2/30 via-primary-500/30 to-accent2/30"
+                    animate={{
+                      x: isHoveringCTA ? ['-100%', '100%'] : '0%',
+                    }}
+                    transition={{
+                      duration: 1.5,
+                      repeat: isHoveringCTA ? Infinity : 0,
+                      ease: "linear"
+                    }}
+                  />
+                  
+                  {/* Sparkle effect */}
+                  <motion.div
+                    className="absolute inset-0"
+                    animate={{
+                      background: isHoveringCTA 
+                        ? 'radial-gradient(circle at var(--mouse-x, 50%) var(--mouse-y, 50%), rgba(255,255,255,0.2) 0%, transparent 50%)'
+                        : 'transparent'
+                    }}
+                  />
+                  
+                  <span className="relative z-10 flex items-center gap-2">
+                    <Rocket className="h-5 w-5" />
+                    Get Started Free
+                    <motion.div
+                      animate={{ x: isHoveringCTA ? 5 : 0 }}
+                      transition={{ duration: 0.3 }}
+                    >
+                      <ArrowRight className="h-4 w-4" />
+                    </motion.div>
+                  </span>
                 </Link>
+                
                 <a
                   href="#workflow"
                   className="btn-ghost inline-flex items-center gap-2"
@@ -98,9 +246,14 @@ function LandingPage() {
                   <PlayCircle className="h-4 w-4 text-primary-700" />
                   Watch a 90-sec tour
                 </a>
-              </div>
+              </motion.div>
 
-              <div className="mt-12 flex items-center gap-5">
+              <motion.div 
+                className="mt-12 flex items-center gap-5"
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                transition={{ duration: 0.6, delay: 1.1 }}
+              >
                 <div className="flex -space-x-2.5">
                   {[
                     "from-primary-500 to-primary-700",
@@ -108,14 +261,21 @@ function LandingPage() {
                     "from-primary-600 to-primary-800",
                     "from-accent2 to-primary-700",
                   ].map((g, i) => (
-                    <div key={i} className={`h-9 w-9 rounded-full border-2 border-background bg-gradient-to-br ${g}`} />
+                    <motion.div 
+                      key={i} 
+                      className={`h-9 w-9 rounded-full border-2 border-background bg-gradient-to-br ${g}`}
+                      initial={{ scale: 0, x: -20 }}
+                      animate={{ scale: 1, x: 0 }}
+                      transition={{ duration: 0.4, delay: 1.2 + i * 0.1 }}
+                      whileHover={{ scale: 1.2, zIndex: 10 }}
+                    />
                   ))}
                 </div>
                 <div className="text-sm">
                   <div className="font-semibold">1,200+ teams</div>
                   <div className="text-muted-foreground">shipping with 2DS</div>
                 </div>
-              </div>
+              </motion.div>
             </motion.div>
 
             {/* Right Visual */}
@@ -217,17 +377,30 @@ function LandingPage() {
                 whileInView={{ opacity: 1, y: 0 }}
                 viewport={{ once: true }}
                 transition={{ delay: i * 0.06 }}
-                whileHover={{ y: -4 }}
-                className="group card-surface relative overflow-hidden p-7"
+                whileHover={{ y: -8, scale: 1.02 }}
+                className="group card-surface relative overflow-hidden p-7 cursor-pointer"
               >
-                <div className="absolute -top-12 -right-12 h-32 w-32 rounded-full bg-gradient-to-br from-primary-200/40 to-transparent blur-2xl transition-opacity group-hover:opacity-100 opacity-40" />
+                <motion.div 
+                  className="absolute -top-12 -right-12 h-32 w-32 rounded-full bg-gradient-to-br from-primary-200/40 to-transparent blur-2xl transition-opacity group-hover:opacity-100 opacity-40"
+                  whileHover={{ scale: 1.3 }}
+                />
                 <div className="relative">
-                  <div className="mb-5 inline-flex h-12 w-12 items-center justify-center rounded-2xl bg-gradient-to-br from-primary-600 to-primary-800 text-white shadow-md shadow-primary-600/25">
+                  <motion.div 
+                    className="mb-5 inline-flex h-12 w-12 items-center justify-center rounded-2xl bg-gradient-to-br from-primary-600 to-primary-800 text-white shadow-md shadow-primary-600/25"
+                    whileHover={{ rotate: [0, -10, 10, -10, 0], scale: 1.1 }}
+                    transition={{ duration: 0.5 }}
+                  >
                     <f.icon className="h-5 w-5" />
-                  </div>
-                  <h3 className="font-display text-xl">{f.title}</h3>
+                  </motion.div>
+                  <h3 className="font-display text-xl group-hover:text-primary-700 transition-colors">{f.title}</h3>
                   <p className="mt-2 text-sm leading-relaxed text-muted-foreground">{f.body}</p>
                 </div>
+                
+                {/* Animated border on hover */}
+                <motion.div
+                  className="absolute inset-0 rounded-[1.25rem] border-2 border-primary-500/0 group-hover:border-primary-500/20"
+                  transition={{ duration: 0.3 }}
+                />
               </motion.div>
             ))}
           </div>
@@ -289,32 +462,109 @@ function LandingPage() {
             initial={{ opacity: 0, scale: 0.96 }}
             whileInView={{ opacity: 1, scale: 1 }}
             viewport={{ once: true }}
+            onMouseMove={handleMouseMove}
             className="relative overflow-hidden rounded-3xl bg-gradient-to-br from-primary-700 via-primary-600 to-primary-800 p-14 text-center shadow-2xl shadow-primary-700/30 animate-gradient"
           >
             <div className="pointer-events-none absolute inset-0 opacity-30">
-              <div className="absolute top-0 right-1/4 h-72 w-72 rounded-full bg-accent2/30 blur-[100px]" />
-              <div className="absolute bottom-0 left-1/4 h-72 w-72 rounded-full bg-primary-300/40 blur-[100px]" />
+              <motion.div 
+                className="absolute top-0 right-1/4 h-72 w-72 rounded-full bg-accent2/30 blur-[100px]"
+                animate={{
+                  x: [0, 50, 0],
+                  y: [0, 30, 0],
+                }}
+                transition={{
+                  duration: 8,
+                  repeat: Infinity,
+                  ease: "easeInOut"
+                }}
+              />
+              <motion.div 
+                className="absolute bottom-0 left-1/4 h-72 w-72 rounded-full bg-primary-300/40 blur-[100px]"
+                animate={{
+                  x: [0, -40, 0],
+                  y: [0, -20, 0],
+                }}
+                transition={{
+                  duration: 10,
+                  repeat: Infinity,
+                  ease: "easeInOut"
+                }}
+              />
             </div>
 
             <div className="relative">
-              <Sparkles className="mx-auto mb-5 h-12 w-12 text-white/80" />
-              <h2 className="font-display text-3xl text-white md:text-5xl">Ready to ship faster?</h2>
-              <p className="mt-3 text-primary-50/85">Free for small teams. No credit card. Cancel anytime.</p>
-
-              <Link
-                to="/login"
-                className="mt-8 inline-flex items-center gap-2 rounded-full bg-white px-7 py-3.5 font-semibold text-primary-700 shadow-2xl transition hover:-translate-y-0.5 hover:bg-primary-50"
-                data-testid="cta-get-started-btn"
+              <motion.div
+                animate={{ rotate: 360 }}
+                transition={{ duration: 20, repeat: Infinity, ease: "linear" }}
               >
-                Get Started
-                <ArrowRight className="h-4 w-4" />
-              </Link>
+                <Sparkles className="mx-auto mb-5 h-12 w-12 text-white/80" />
+              </motion.div>
+              
+              <motion.h2 
+                className="font-display text-3xl text-white md:text-5xl"
+                initial={{ opacity: 0, y: 20 }}
+                whileInView={{ opacity: 1, y: 0 }}
+                viewport={{ once: true }}
+              >
+                Ready to ship faster?
+              </motion.h2>
+              
+              <motion.p 
+                className="mt-3 text-primary-50/85"
+                initial={{ opacity: 0 }}
+                whileInView={{ opacity: 1 }}
+                viewport={{ once: true }}
+                transition={{ delay: 0.2 }}
+              >
+                Free for small teams. No credit card. Cancel anytime.
+              </motion.p>
 
-              <div className="mt-7 flex flex-wrap items-center justify-center gap-x-6 gap-y-2 text-xs text-primary-50/75">
-                <span className="inline-flex items-center gap-1.5"><CheckCircle2 className="h-3.5 w-3.5" /> 14-day trial</span>
-                <span className="inline-flex items-center gap-1.5"><CheckCircle2 className="h-3.5 w-3.5" /> No setup fees</span>
-                <span className="inline-flex items-center gap-1.5"><CheckCircle2 className="h-3.5 w-3.5" /> Cancel anytime</span>
-              </div>
+              <motion.div
+                initial={{ opacity: 0, y: 20 }}
+                whileInView={{ opacity: 1, y: 0 }}
+                viewport={{ once: true }}
+                transition={{ delay: 0.4 }}
+              >
+                <Link
+                  to="/login"
+                  className="group mt-8 inline-flex items-center gap-2 rounded-full bg-white px-7 py-3.5 font-semibold text-primary-700 shadow-2xl transition-all hover:-translate-y-1 hover:bg-primary-50 hover:shadow-[0_20px_50px_rgba(255,255,255,0.3)] active:translate-y-0"
+                  data-testid="cta-get-started-btn"
+                >
+                  <Rocket className="h-4 w-4" />
+                  Get Started
+                  <motion.div
+                    animate={{ x: [0, 5, 0] }}
+                    transition={{ duration: 1.5, repeat: Infinity }}
+                  >
+                    <ArrowRight className="h-4 w-4" />
+                  </motion.div>
+                </Link>
+              </motion.div>
+
+              <motion.div 
+                className="mt-7 flex flex-wrap items-center justify-center gap-x-6 gap-y-2 text-xs text-primary-50/75"
+                initial={{ opacity: 0 }}
+                whileInView={{ opacity: 1 }}
+                viewport={{ once: true }}
+                transition={{ delay: 0.6 }}
+              >
+                {[
+                  { icon: CheckCircle2, text: "14-day trial" },
+                  { icon: CheckCircle2, text: "No setup fees" },
+                  { icon: CheckCircle2, text: "Cancel anytime" }
+                ].map((item, i) => (
+                  <motion.span 
+                    key={i}
+                    className="inline-flex items-center gap-1.5"
+                    initial={{ opacity: 0, x: -10 }}
+                    whileInView={{ opacity: 1, x: 0 }}
+                    viewport={{ once: true }}
+                    transition={{ delay: 0.7 + i * 0.1 }}
+                  >
+                    <item.icon className="h-3.5 w-3.5" /> {item.text}
+                  </motion.span>
+                ))}
+              </motion.div>
             </div>
           </motion.div>
         </div>

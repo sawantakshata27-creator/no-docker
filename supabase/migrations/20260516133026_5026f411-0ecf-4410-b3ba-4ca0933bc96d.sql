@@ -1,0 +1,1 @@
+REVOKE EXECUTE ON FUNCTION public.can_access_document_storage(text, uuid) FROM PUBLIC, anon, authenticated;

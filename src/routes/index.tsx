@@ -291,9 +291,21 @@ function LandingPage() {
                     Today's board
                   </div>
                   <div className="flex gap-1.5">
-                    <span className="h-2.5 w-2.5 rounded-full bg-destructive/70" />
-                    <span className="h-2.5 w-2.5 rounded-full bg-warning/70" />
-                    <span className="h-2.5 w-2.5 rounded-full bg-success/80" />
+                    <motion.span 
+                      className="h-2.5 w-2.5 rounded-full bg-destructive/70"
+                      animate={{ scale: [1, 1.2, 1] }}
+                      transition={{ duration: 2, repeat: Infinity, delay: 0 }}
+                    />
+                    <motion.span 
+                      className="h-2.5 w-2.5 rounded-full bg-warning/70"
+                      animate={{ scale: [1, 1.2, 1] }}
+                      transition={{ duration: 2, repeat: Infinity, delay: 0.3 }}
+                    />
+                    <motion.span 
+                      className="h-2.5 w-2.5 rounded-full bg-success/80"
+                      animate={{ scale: [1, 1.2, 1] }}
+                      transition={{ duration: 2, repeat: Infinity, delay: 0.6 }}
+                    />
                   </div>
                 </div>
 
@@ -308,7 +320,8 @@ function LandingPage() {
                       initial={{ opacity: 0, y: 12 }}
                       animate={{ opacity: 1, y: 0 }}
                       transition={{ delay: 0.35 + i * 0.12 }}
-                      className="rounded-xl border border-border/60 bg-background/50 p-3 backdrop-blur"
+                      whileHover={{ scale: 1.02, y: -5 }}
+                      className="rounded-xl border border-border/60 bg-background/50 p-3 backdrop-blur cursor-pointer"
                     >
                       <div className="mb-2.5 flex items-center justify-between">
                         <div className="flex items-center gap-2 text-[11px] font-semibold">
@@ -321,9 +334,14 @@ function LandingPage() {
                       </div>
                       <div className="space-y-2">
                         {col.tasks.map((t) => (
-                          <div key={t} className="rounded-lg border border-border bg-card px-2.5 py-2 text-[11px] font-medium leading-snug shadow-sm">
+                          <motion.div 
+                            key={t} 
+                            className="rounded-lg border border-border bg-card px-2.5 py-2 text-[11px] font-medium leading-snug shadow-sm"
+                            whileHover={{ scale: 1.03, x: 3 }}
+                            transition={{ duration: 0.2 }}
+                          >
                             {t}
-                          </div>
+                          </motion.div>
                         ))}
                       </div>
                     </motion.div>
@@ -342,8 +360,9 @@ function LandingPage() {
                         initial={{ scaleY: 0 }}
                         animate={{ scaleY: h / 100 }}
                         transition={{ delay: 0.6 + i * 0.04, duration: 0.5 }}
+                        whileHover={{ scaleY: 1, backgroundColor: "var(--color-accent2)" }}
                         style={{ transformOrigin: "bottom" }}
-                        className="flex-1 rounded-t bg-gradient-to-t from-primary-600 to-accent2"
+                        className="flex-1 rounded-t bg-gradient-to-t from-primary-600 to-accent2 cursor-pointer"
                       />
                     ))}
                   </div>
@@ -352,6 +371,33 @@ function LandingPage() {
             </motion.div>
           </div>
         </div>
+        
+        {/* Scroll indicator */}
+        <motion.div
+          className="absolute bottom-8 left-1/2 -translate-x-1/2"
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          transition={{ delay: 1.5 }}
+        >
+          <motion.a
+            href="#features"
+            className="flex flex-col items-center gap-2 text-xs text-muted-foreground hover:text-foreground transition-colors"
+            animate={{ y: [0, 8, 0] }}
+            transition={{ duration: 2, repeat: Infinity, ease: "easeInOut" }}
+          >
+            <span className="font-medium">Scroll to explore</span>
+            <motion.div
+              className="h-8 w-5 rounded-full border-2 border-current flex items-start justify-center p-1"
+              whileHover={{ scale: 1.1 }}
+            >
+              <motion.div
+                className="h-1.5 w-1.5 rounded-full bg-current"
+                animate={{ y: [0, 12, 0] }}
+                transition={{ duration: 1.5, repeat: Infinity, ease: "easeInOut" }}
+              />
+            </motion.div>
+          </motion.a>
+        </motion.div>
       </section>
 
       {/* Features */}

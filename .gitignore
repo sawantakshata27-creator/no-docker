@@ -69,3 +69,4 @@ memory/test_credentials.md
 # Mobile development
 android-sdk/node_modules/@cloudflare/workerd-linux-arm64/bin/workerd
 >>>>>>> 7c62d9c (feat: optimize theme transition, redesign login with liquid glass effect, fix Google OAuth)
+node_modules/@cloudflare/workerd-linux-arm64/bin/workerd

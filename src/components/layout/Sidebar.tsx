@@ -29,18 +29,23 @@ export function Sidebar() {
   const pathname = useRouterState({ select: (s) => s.location.pathname });
   const { org } = useAuth();
 
+  const activeIndex = NAV.findIndex(
+    (item) => pathname === item.to || (item.to !== "/dashboard" && pathname.startsWith(item.to)),
+  );
+
   return (
     <motion.aside
-      animate={{ width: collapsed ? 83 : 256 }}
-      transition={{ duration: 0.3, ease: [0.16, 1, 0.3, 1] }}
-      className="sidebar-gradient sticky top-0 z-10 flex h-screen flex-col text-white shadow-2xl"
+      animate={{ width: collapsed ? 76 : 252 }}
+      transition={{ type: "spring", stiffness: 260, damping: 28 }}
+      className="sidebar-gradient sticky top-0 z-20 flex h-screen flex-col text-white shadow-2xl"
       data-testid="app-sidebar"
     >
+      {/* Logo */}
       <div className="relative z-10 flex h-16 shrink-0 items-center gap-3 border-b border-white/10 px-4">
-        <div className="grid h-9 w-9 shrink-0 place-items-center rounded-xl bg-white/15 font-display text-sm font-bold shadow-inner backdrop-blur">
+        <div className="grid h-9 w-9 shrink-0 place-items-center rounded-xl bg-white/15 font-display text-sm font-semibold shadow-inner backdrop-blur">
           2D
         </div>
-        <AnimatePresence>
+        <AnimatePresence initial={false}>
           {!collapsed && (
             <motion.div
               key="logo-text"
@@ -48,16 +53,10 @@ export function Sidebar() {
               animate={{ opacity: 1, x: 0 }}
               exit={{ opacity: 0, x: -8 }}
               transition={{ duration: 0.2 }}
-              className="overflow-hidden"
+              className="overflow-hidden whitespace-nowrap"
             >
-              <motion.div
-                initial={{ opacity: 0, y: 4 }}
-                animate={{ opacity: 1, y: 0 }}
-                className="font-display text-sm leading-tight font-semibold"
-              >
-                2DS Workflow
-              </motion.div>
-              <div className="text-[10px] leading-tight tracking-wider text-white/50 uppercase">
+              <div className="font-display text-sm leading-tight font-semibold">2DS Workflow</div>
+              <div className="text-[10px] leading-tight tracking-[0.18em] text-white/50 uppercase">
                 Enterprise OS
               </div>
             </motion.div>
@@ -65,7 +64,8 @@ export function Sidebar() {
         </AnimatePresence>
       </div>
 
-      <AnimatePresence>
+      {/* Org */}
+      <AnimatePresence initial={false}>
         {!collapsed && org && (
           <motion.div
             key="org-badge"
@@ -74,22 +74,10 @@ export function Sidebar() {
             exit={{ opacity: 0, y: -6 }}
             className="relative z-10 mx-3 mt-3 rounded-xl border border-white/10 bg-white/[0.07] px-3 py-2.5 backdrop-blur"
           >
-            <motion.div
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              transition={{ delay: 0.1 }}
-              className="text-[9px] font-semibold tracking-[0.18em] text-white/45 uppercase"
-            >
+            <div className="text-[9px] font-semibold tracking-[0.18em] text-white/45 uppercase">
               Workspace
-            </motion.div>
-            <motion.div
-              initial={{ opacity: 0, x: -6 }}
-              animate={{ opacity: 1, x: 0 }}
-              transition={{ delay: 0.15 }}
-              className="mt-0.5 truncate text-sm font-semibold text-white"
-            >
-              {org.name}
-            </motion.div>
+            </div>
+            <div className="mt-0.5 truncate text-sm font-semibold text-white">{org.name}</div>
             <div className="mt-1 inline-block rounded bg-white/10 px-1.5 py-0.5 font-mono text-[10px] text-white/70">
               {org.code}
             </div>
@@ -97,84 +85,99 @@ export function Sidebar() {
         )}
       </AnimatePresence>
 
-      <nav className="relative z-10 flex-1 overflow-y-auto overflow-x-hidden py-4">
+      {/* Nav */}
+      <nav className="relative z-10 mt-3 flex-1 overflow-y-auto overflow-x-hidden">
         <div className="relative">
-          {(() => {
-            const activeIndex = NAV.findIndex(
-              (item) => pathname === item.to || (item.to !== "/dashboard" && pathname.startsWith(item.to))
-            );
+          {activeIndex >= 0 && (
+            <motion.div
+              className="sidebar-cutout"
+              initial={false}
+              animate={{ top: `${activeIndex * 50}px` }}
+              transition={{ type: "spring", stiffness: 320, damping: 30 }}
+            />
+          )}
+          {NAV.map((item, i) => {
+            const active = activeIndex === i;
             return (
-              <>
-                {activeIndex >= 0 && (
-                  <motion.div
-                    className="sidebar-cutout"
-                    initial={false}
-                    animate={{ top: `${activeIndex * 48}px` }}
-                    transition={{ type: "spring", stiffness: 300, damping: 30 }}
+              <Link
+                key={item.to}
+                to={item.to}
+                title={collapsed ? item.label : undefined}
+                data-testid={`nav-${item.to.replace("/", "")}`}
+                className={`group relative z-10 flex h-[50px] items-center gap-3.5 px-5 text-sm font-semibold transition-colors ${
+                  active ? "text-primary-700" : "text-white/65 hover:text-white"
+                }`}
+              >
+                <motion.span whileHover={{ scale: active ? 1 : 1.08 }} className="shrink-0">
+                  <item.icon
+                    style={{ width: 20, height: 20 }}
+                    strokeWidth={active ? 2.6 : 2}
+                  />
+                </motion.span>
+                <AnimatePresence initial={false}>
+                  {!collapsed && (
+                    <motion.span
+                      initial={{ opacity: 0, x: -4 }}
+                      animate={{ opacity: 1, x: 0 }}
+                      exit={{ opacity: 0, x: -4 }}
+                      transition={{ duration: 0.18 }}
+                      className="truncate whitespace-nowrap"
+                    >
+                      {item.label}
+                    </motion.span>
+                  )}
+                </AnimatePresence>
+                {active && (
+                  <motion.span
+                    layoutId="sidebar-dot"
+                    className="ml-auto h-1.5 w-1.5 rounded-full bg-accent2"
                   />
                 )}
-                {NAV.map((item, i) => {
-                  const active = activeIndex === i;
-                  return (
-                    <Link
-                      key={item.to}
-                      to={item.to}
-                      title={collapsed ? item.label : undefined}
-                      data-testid={`nav-${item.to.replace("/", "")}`}
-                      className={`group relative z-10 flex h-[48px] items-center gap-3.5 px-5 text-sm font-semibold transition-all duration-200 ${
-                        active
-                          ? "text-foreground"
-                          : "text-white/65 hover:text-white/95 hover:translate-x-0.5"
-                      }`}
-                    >
-                      <motion.span 
-                        whileHover={{ scale: active ? 1 : 1.08 }} 
-                        className="shrink-0"
-                      >
-                        <item.icon
-                          style={{ width: 20, height: 20 }}
-                          strokeWidth={active ? 2.8 : 2}
-                        />
-                      </motion.span>
-                      <AnimatePresence>
-                        {!collapsed && (
-                          <motion.span
-                            initial={{ opacity: 0, x: -4 }}
-                            animate={{ opacity: 1, x: 0 }}
-                            exit={{ opacity: 0, x: -4 }}
-                            transition={{ duration: 0.2 }}
-                            className="truncate"
-                          >
-                            {item.label}
-                          </motion.span>
-                        )}
-                      </AnimatePresence>
-                    </Link>
-                  );
-                })}
-              </>
+              </Link>
             );
-          })()}
+          })}
         </div>
       </nav>
 
+      {/* Floating collapse toggle */}
       <motion.button
         onClick={() => setCollapsed((c) => !c)}
         data-testid="sidebar-collapse-btn"
-        whileHover={{ scale: 1.05, x: collapsed ? 2 : -2 }}
-        whileTap={{ scale: 0.95 }}
-        className="relative z-10 mx-3 mb-4 flex shrink-0 items-center justify-center gap-2 rounded-xl border border-white/20 bg-gradient-to-br from-white/[0.15] to-white/[0.08] px-3 py-3 text-xs font-bold text-white shadow-xl backdrop-blur-sm transition-all hover:border-white/30 hover:from-white/20 hover:to-white/[0.12] hover:shadow-2xl"
+        whileHover={{ scale: 1.06 }}
+        whileTap={{ scale: 0.94 }}
+        animate={{ rotate: collapsed ? 0 : 0 }}
+        className="absolute top-20 -right-3.5 z-30 grid h-8 w-8 place-items-center rounded-full border border-border bg-card text-foreground shadow-md transition hover:border-primary-300 hover:bg-primary-50"
         title={collapsed ? "Expand sidebar" : "Collapse sidebar"}
       >
-        {collapsed ? (
-          <ChevronRight className="h-4 w-4" strokeWidth={2.8} />
-        ) : (
-          <>
-            <ChevronLeft className="h-4 w-4" strokeWidth={2.8} />
-            <span className="tracking-wide">COLLAPSE</span>
-          </>
-        )}
+        <motion.span
+          key={collapsed ? "r" : "l"}
+          initial={{ rotate: -45, opacity: 0 }}
+          animate={{ rotate: 0, opacity: 1 }}
+          transition={{ duration: 0.2 }}
+        >
+          {collapsed ? <ChevronRight className="h-4 w-4" /> : <ChevronLeft className="h-4 w-4" />}
+        </motion.span>
       </motion.button>
+
+      {/* Footer chip */}
+      <div className="relative z-10 m-3 mt-2 rounded-xl border border-white/10 bg-white/[0.05] px-3 py-2.5 backdrop-blur">
+        <div className="flex items-center gap-2.5">
+          <div className="h-2 w-2 animate-pulse-soft rounded-full bg-success" />
+          <AnimatePresence initial={false}>
+            {!collapsed && (
+              <motion.div
+                initial={{ opacity: 0, x: -4 }}
+                animate={{ opacity: 1, x: 0 }}
+                exit={{ opacity: 0, x: -4 }}
+                className="text-[11px] leading-tight text-white/70 whitespace-nowrap"
+              >
+                <div className="font-semibold text-white/85">All systems normal</div>
+                <div className="text-white/45">Live · Updated now</div>
+              </motion.div>
+            )}
+          </AnimatePresence>
+        </div>
+      </div>
     </motion.aside>
   );
 }

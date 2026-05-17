@@ -7,6 +7,7 @@ import { useAuth } from "@/lib/auth-store";
 import { useTheme } from "@/lib/theme-store";
 import { UserAvatar } from "@/components/ui/UserAvatar";
 import { NotificationsPanel } from "./NotificationsPanel";
+import { GlobalSearch } from "./GlobalSearch";
 
 export function Topbar() {
   const { profile, org, signOut } = useAuth();
@@ -49,30 +50,7 @@ export function Topbar() {
         </div>
       </div>
 
-      {org && (
-        <button
-          onClick={copyCode}
-          data-testid="topbar-org-code"
-          className="ml-3 hidden items-center gap-2 rounded-full border border-border bg-muted/50 px-3.5 py-1.5 text-xs transition hover:border-primary-200 hover:bg-muted md:flex"
-          title="Click to copy Org ID"
-        >
-          <span className="font-medium text-foreground">{org.name}</span>
-          <span className="rounded-full bg-primary-100 px-2 py-0.5 font-mono text-[10px] font-semibold text-primary-700">
-            {org.code}
-          </span>
-          <AnimatePresence mode="wait">
-            {copied ? (
-              <motion.span key="copied" initial={{ scale: 0.6, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} exit={{ scale: 0.6, opacity: 0 }}>
-                <Check className="h-3 w-3 text-emerald-600" />
-              </motion.span>
-            ) : (
-              <motion.span key="copy" initial={{ scale: 0.6, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} exit={{ scale: 0.6, opacity: 0 }}>
-                <Copy className="h-3 w-3 text-muted-foreground" />
-              </motion.span>
-            )}
-          </AnimatePresence>
-        </button>
-      )}
+      <GlobalSearch />
 
       <motion.div
         className="ml-auto flex items-center gap-1.5"
@@ -112,7 +90,7 @@ export function Topbar() {
           <UserAvatar name={profile?.full_name ?? profile?.email} avatarUrl={profile?.avatar_url} size="sm" />
           <motion.div className="hidden text-xs leading-tight lg:block" initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.15 }}>
             <motion.div layout className="font-semibold">{profile?.full_name ?? "User"}</motion.div>
-            <motion.div layout className="text-muted-foreground">{org?.name ?? "No workspace"}</motion.div>
+            <motion.div layout className="text-muted-foreground">{org?.code ?? "No org"}</motion.div>
           </motion.div>
           <Settings2 className="mr-1 h-3.5 w-3.5 text-muted-foreground" />
         </button>

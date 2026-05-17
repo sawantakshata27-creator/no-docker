@@ -44,7 +44,15 @@ export function KanbanBoard({ boardId, userId, columns, tasks: initialTasks, onC
     setTasks(next);
   }, [initialTasks, activeId]);
 
-  const sensors = useSensors(useSensor(PointerSensor, { activationConstraint: { distance: 6 } }));
+  const sensors = useSensors(
+    useSensor(PointerSensor, { 
+      activationConstraint: { 
+        distance: 3,
+        delay: 0,
+        tolerance: 5
+      } 
+    })
+  );
 
   const activeTask = tasks.find((task) => task.id === activeId) ?? null;
   const selectedTask = tasks.find((task) => task.id === selectedTaskId) ?? null;
@@ -105,15 +113,16 @@ export function KanbanBoard({ boardId, userId, columns, tasks: initialTasks, onC
       new Set([before?.column_id, after?.column_id].filter(Boolean) as string[]),
     );
 
-    try {
-      await persistTaskOrder(nextTasks, affectedColumnIds);
-      dragSnapshotRef.current = nextTasks;
-      // We rely on optimistic updates. No immediate onChange() refetch to avoid snap-back.
-    } catch (error: any) {
-      setTasks(dragSnapshotRef.current);
-      toast.error(error?.message || "Failed to save task movement");
-      onChange();
-    }
+    // Persist in background, call onChange when done so parent stays in sync
+    persistTaskOrder(nextTasks, affectedColumnIds)
+      .then(() => {
+        onChange();
+      })
+      .catch((error: any) => {
+        setTasks(dragSnapshotRef.current);
+        toast.error(error?.message || "Failed to save task movement");
+        onChange();
+      });
   };
 
   const addTask = async (columnId: string) => {
@@ -263,7 +272,12 @@ export function KanbanBoard({ boardId, userId, columns, tasks: initialTasks, onC
           })}
         </div>
 
-        <DragOverlay dropAnimation={null}>
+        <DragOverlay 
+          dropAnimation={{
+            duration: 200,
+            easing: "cubic-bezier(0.18, 0.67, 0.6, 1.22)",
+          }}
+        >
           {activeTask ? <TaskCard task={activeTask} dragging /> : null}
         </DragOverlay>
       </DndContext>

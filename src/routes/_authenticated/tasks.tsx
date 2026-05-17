@@ -17,6 +17,8 @@ function TasksPage() {
   const [stage, setStage] = useState<string>("all");
   const [sort, setSort] = useState<"created" | "priority" | "due">("created");
   const [selectedTaskId, setSelectedTaskId] = useState<string | null>(null);
+  const [editingTaskId, setEditingTaskId] = useState<string | null>(null);
+  const [editingTitle, setEditingTitle] = useState("");
   // local optimistic overlay
   const [patches, setPatches] = useState<Record<string, Partial<TaskRecord>>>({});
   const [deleted, setDeleted] = useState<Set<string>>(new Set());
@@ -123,6 +125,28 @@ function TasksPage() {
     qc.invalidateQueries({ queryKey: ["tasks"] });
   };
 
+  const handleStartEdit = (task: TaskRecord) => {
+    setEditingTaskId(task.id);
+    setEditingTitle(task.title);
+  };
+
+  const handleSaveEdit = async () => {
+    if (!editingTaskId || !editingTitle.trim()) {
+      setEditingTaskId(null);
+      return;
+    }
+    patchTask(editingTaskId, { title: editingTitle.trim() });
+    await supabase.from("tasks").update({ title: editingTitle.trim() }).eq("id", editingTaskId);
+    qc.invalidateQueries({ queryKey: ["all-tasks"] });
+    qc.invalidateQueries({ queryKey: ["tasks"] });
+    setEditingTaskId(null);
+  };
+
+  const handleCancelEdit = () => {
+    setEditingTaskId(null);
+    setEditingTitle("");
+  };
+
   const today = new Date();
   today.setHours(0, 0, 0, 0);
 
@@ -132,7 +156,7 @@ function TasksPage() {
         <h1 className="font-display text-2xl font-bold tracking-tight">Tasks</h1>
         <p className="text-sm text-muted-foreground">
           All work across your workspace.{" "}
-          <span className="text-xs text-muted-foreground/60">Click any row to edit.</span>
+          <span className="text-xs text-muted-foreground/60">Double-click title to edit inline.</span>
         </p>
       </div>
 
@@ -205,14 +229,40 @@ function TasksPage() {
                 return (
                   <tr
                     key={t.id}
-                    onClick={() => setSelectedTaskId(t.id)}
+                    onClick={() => {
+                      if (editingTaskId !== t.id) setSelectedTaskId(t.id);
+                    }}
                     className={`group cursor-pointer border-t border-border transition-colors
                       ${isOverdue ? "bg-red-50/40 hover:bg-red-50/70 dark:bg-red-500/5 dark:hover:bg-red-500/10" : "hover:bg-muted/30"}
                       ${isSelected ? "ring-2 ring-inset ring-primary-500/30" : ""}`}
                   >
                     <td className="px-4 py-3">
-                      <div className="font-medium leading-snug">{t.title}</div>
-                      {t.description && (
+                      {editingTaskId === t.id ? (
+                        <input
+                          autoFocus
+                          value={editingTitle}
+                          onChange={(e) => setEditingTitle(e.target.value)}
+                          onBlur={handleSaveEdit}
+                          onKeyDown={(e) => {
+                            if (e.key === "Enter") handleSaveEdit();
+                            if (e.key === "Escape") handleCancelEdit();
+                            e.stopPropagation();
+                          }}
+                          onClick={(e) => e.stopPropagation()}
+                          className="input-field w-full py-1 text-sm font-medium"
+                        />
+                      ) : (
+                        <div 
+                          onDoubleClick={(e) => {
+                            e.stopPropagation();
+                            handleStartEdit(t);
+                          }}
+                          className="font-medium leading-snug"
+                        >
+                          {t.title}
+                        </div>
+                      )}
+                      {t.description && editingTaskId !== t.id && (
                         <div className="line-clamp-1 text-xs text-muted-foreground">
                           {t.description}
                         </div>

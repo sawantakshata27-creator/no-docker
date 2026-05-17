@@ -37,6 +37,7 @@ function LoginPage() {
   const [password, setPassword] = useState("");
   const [fullName, setFullName] = useState("");
   const [loading, setLoading] = useState(false);
+  const [showSuccess, setShowSuccess] = useState(false);
 
   useEffect(() => {
     if (session) {
@@ -59,7 +60,10 @@ function LoginPage() {
           },
         });
         if (error) throw error;
-        toast.success("Account created — welcome!");
+        setShowSuccess(true);
+        setTimeout(() => {
+          toast.success("Account created — welcome!");
+        }, 800);
       } else if (mode === "signin") {
         const { error } = await supabase.auth.signInWithPassword({ email, password });
         if (error) throw error;
@@ -211,7 +215,7 @@ function LoginPage() {
           initial={{ opacity: 0, y: 12 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.4, ease: [0.16, 1, 0.3, 1] }}
-          className="w-full max-w-sm"
+          className="card-glass w-full max-w-sm p-8"
         >
           <Link
             to="/"

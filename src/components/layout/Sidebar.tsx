@@ -33,7 +33,7 @@ export function Sidebar() {
     <motion.aside
       animate={{ width: collapsed ? 76 : 248 }}
       transition={{ duration: 0.28, ease: [0.16, 1, 0.3, 1] }}
-      className="sidebar-gradient sticky top-0 z-10 flex h-screen flex-col overflow-hidden text-white"
+      className="sidebar-gradient sticky top-0 z-10 flex h-screen flex-col text-white"
       data-testid="app-sidebar"
     >
       <div className="relative z-10 flex h-16 shrink-0 items-center gap-3 border-b border-white/10 px-4">
@@ -97,57 +97,60 @@ export function Sidebar() {
         )}
       </AnimatePresence>
 
-      <nav className="relative z-10 flex-1 space-y-0.5 overflow-y-auto px-2 py-4">
-        {NAV.map((item, i) => {
-          const active =
-            pathname === item.to || (item.to !== "/dashboard" && pathname.startsWith(item.to));
-          return (
-            <motion.div
-              key={item.to}
-              initial={{ opacity: 0, x: -8 }}
-              animate={{ opacity: 1, x: 0 }}
-              transition={{ delay: i * 0.04, duration: 0.3 }}
-            >
-              <Link
-                to={item.to}
-                title={collapsed ? item.label : undefined}
-                data-testid={`nav-${item.to.replace("/", "")}`}
-                className={`group relative flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm transition-all duration-200 ${
-                  active
-                    ? "bg-white/15 font-medium text-white"
-                    : "text-white/65 hover:translate-x-0.5 hover:bg-white/[0.08] hover:text-white"
-                }`}
-              >
-                {active && (
-                  <motion.span
-                    layoutId="sidebar-active"
-                    className="absolute top-1/2 left-0 h-6 w-[3px] -translate-y-1/2 rounded-r-full bg-white shadow-[0_0_12px_rgba(255,255,255,0.5)]"
-                    transition={{ type: "spring", stiffness: 380, damping: 32 }}
+      <nav className="relative z-10 flex-1 overflow-y-auto overflow-x-hidden py-4">
+        <div className="relative">
+          {(() => {
+            const activeIndex = NAV.findIndex(
+              (item) => pathname === item.to || (item.to !== "/dashboard" && pathname.startsWith(item.to))
+            );
+            return (
+              <>
+                {activeIndex >= 0 && (
+                  <div
+                    className="sidebar-cutout"
+                    style={{ top: `${activeIndex * 44}px` }}
                   />
                 )}
-                <motion.span whileHover={{ x: active ? 0 : 2 }} className="shrink-0">
-                  <item.icon
-                    style={{ width: 18, height: 18 }}
-                    strokeWidth={active ? 2.4 : 2}
-                  />
-                </motion.span>
-                <AnimatePresence>
-                  {!collapsed && (
-                    <motion.span
-                      initial={{ opacity: 0 }}
-                      animate={{ opacity: 1 }}
-                      exit={{ opacity: 0 }}
-                      transition={{ duration: 0.15 }}
-                      className="truncate"
+                {NAV.map((item, i) => {
+                  const active = activeIndex === i;
+                  return (
+                    <Link
+                      key={item.to}
+                      to={item.to}
+                      title={collapsed ? item.label : undefined}
+                      data-testid={`nav-${item.to.replace("/", "")}`}
+                      className={`group relative z-10 flex h-[44px] items-center gap-3 pl-5 pr-3 text-sm transition-colors duration-200 ${
+                        active
+                          ? "font-medium text-foreground"
+                          : "text-white/65 hover:text-white"
+                      }`}
                     >
-                      {item.label}
-                    </motion.span>
-                  )}
-                </AnimatePresence>
-              </Link>
-            </motion.div>
-          );
-        })}
+                      <motion.span whileHover={{ x: active ? 0 : 2 }} className="shrink-0">
+                        <item.icon
+                          style={{ width: 18, height: 18 }}
+                          strokeWidth={active ? 2.4 : 2}
+                        />
+                      </motion.span>
+                      <AnimatePresence>
+                        {!collapsed && (
+                          <motion.span
+                            initial={{ opacity: 0 }}
+                            animate={{ opacity: 1 }}
+                            exit={{ opacity: 0 }}
+                            transition={{ duration: 0.15 }}
+                            className="truncate"
+                          >
+                            {item.label}
+                          </motion.span>
+                        )}
+                      </AnimatePresence>
+                    </Link>
+                  );
+                })}
+              </>
+            );
+          })()}
+        </div>
       </nav>
 
       <motion.button

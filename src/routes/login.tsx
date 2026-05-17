@@ -146,9 +146,11 @@ function LoginPage() {
         />
 
         <Link to="/" className="relative z-10 flex items-center gap-2.5">
-          <div className="grid h-10 w-10 place-items-center rounded-2xl bg-white/15 font-display font-bold backdrop-blur">
-            2D
-          </div>
+          <img 
+            src="/2ds-workflow-logo.png" 
+            alt="2DS Workflow" 
+            className="h-10 w-auto object-contain"
+          />
           <span className="font-display text-lg font-semibold">2DS Workflow</span>
         </Link>
 

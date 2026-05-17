@@ -5,8 +5,8 @@
 @custom-variant dark (&:is(.dark *));
 
 @theme inline {
-  --font-sans: "Geist", "Inter", system-ui, sans-serif;
-  --font-display: "Fraunces", "Bricolage Grotesque", serif;
+  --font-sans: "Geist", "Inter", "Space Grotesk", system-ui, sans-serif;
+  --font-display: "Fraunces", "Archivo Black", "Bricolage Grotesque", serif;
   --font-mono: "JetBrains Mono", "Fira Code", ui-monospace, monospace;
 
   --radius-sm: calc(var(--radius) - 4px);
@@ -519,3 +519,102 @@
 .ProseMirror pre code { background: transparent; padding: 0; color: inherit; }
 .ProseMirror p.is-editor-empty:first-child::before { content: attr(data-placeholder); color: var(--color-muted-foreground); float: left; pointer-events: none; height: 0; }
 .ProseMirror a { color: var(--color-primary-700); text-decoration: underline; }
+
+
+/* ─── ENHANCED CUSTOM ANIMATIONS ──────────────────────────────────────────── */
+@keyframes float-up {
+  0% { transform: translateY(0px); }
+  50% { transform: translateY(-10px); }
+  100% { transform: translateY(0px); }
+}
+
+@keyframes glow-pulse {
+  0%, 100% { box-shadow: 0 0 20px rgba(66, 133, 244, 0.3); }
+  50% { box-shadow: 0 0 40px rgba(66, 133, 244, 0.6); }
+}
+
+@keyframes slide-up-fade {
+  0% {
+    opacity: 0;
+    transform: translateY(30px);
+  }
+  100% {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes scale-in {
+  0% {
+    opacity: 0;
+    transform: scale(0.9);
+  }
+  100% {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+@keyframes bounce-subtle {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-5px); }
+}
+
+@keyframes rotate-slow {
+  from { transform: rotate(0deg); }
+  to { transform: rotate(360deg); }
+}
+
+@keyframes text-shimmer {
+  0% {
+    background-position: -200% center;
+  }
+  100% {
+    background-position: 200% center;
+  }
+}
+
+.animate-float-up {
+  animation: float-up 3s ease-in-out infinite;
+}
+
+.animate-glow-pulse {
+  animation: glow-pulse 2s ease-in-out infinite;
+}
+
+.animate-slide-up-fade {
+  animation: slide-up-fade 0.6s ease-out forwards;
+}
+
+.animate-scale-in {
+  animation: scale-in 0.4s ease-out forwards;
+}
+
+.animate-bounce-subtle {
+  animation: bounce-subtle 2s ease-in-out infinite;
+}
+
+.animate-rotate-slow {
+  animation: rotate-slow 20s linear infinite;
+}
+
+.text-gradient-animated {
+  background: linear-gradient(90deg, var(--color-primary-600), var(--accent2), var(--color-primary-700), var(--accent2), var(--color-primary-600));
+  background-size: 200% auto;
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+  animation: text-shimmer 3s linear infinite;
+}
+
+/* Smooth scroll behavior */
+html {
+  scroll-behavior: smooth;
+}
+
+/* Enhanced transitions for dark mode */
+.dark-mode-transition {
+  transition: background-color 0.3s cubic-bezier(0.4, 0, 0.2, 1),
+              color 0.3s cubic-bezier(0.4, 0, 0.2, 1),
+              border-color 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}

@@ -54,8 +54,6 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
       { name: "twitter:title", content: "2DS Workflow — Enterprise Workflow OS" },
       { property: "og:description", content: "Document signing workflow OS with Kanban, analytics, and team collaboration." },
       { name: "twitter:description", content: "Document signing workflow OS with Kanban, analytics, and team collaboration." },
-      { property: "og:image", content: "https://pub-bb2e103a32db4e198524a2e9ed8f35b4.r2.dev/a3858353-b83d-49bb-b625-23590497826d/id-preview-027d234c--3768c13c-1f9f-4768-a5b5-f5b98cfff6b5.lovable.app-1778939489768.png" },
-      { name: "twitter:image", content: "https://pub-bb2e103a32db4e198524a2e9ed8f35b4.r2.dev/a3858353-b83d-49bb-b625-23590497826d/id-preview-027d234c--3768c13c-1f9f-4768-a5b5-f5b98cfff6b5.lovable.app-1778939489768.png" },
       { name: "twitter:card", content: "summary_large_image" },
       { property: "og:type", content: "website" },
     ],

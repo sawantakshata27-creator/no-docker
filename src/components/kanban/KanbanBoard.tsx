@@ -47,9 +47,9 @@ export function KanbanBoard({ boardId, userId, columns, tasks: initialTasks, onC
   const sensors = useSensors(
     useSensor(PointerSensor, { 
       activationConstraint: { 
-        distance: 2,
+        distance: 1,
         delay: 0,
-        tolerance: 3
+        tolerance: 2
       } 
     })
   );
@@ -275,8 +275,8 @@ export function KanbanBoard({ boardId, userId, columns, tasks: initialTasks, onC
 
         <DragOverlay 
           dropAnimation={{
-            duration: 200,
-            easing: "cubic-bezier(0.18, 0.67, 0.6, 1.22)",
+            duration: 150,
+            easing: "cubic-bezier(0.25, 0.46, 0.45, 0.94)",
           }}
         >
           {activeTask ? <TaskCard task={activeTask} dragging /> : null}
@@ -398,7 +398,7 @@ function ColumnDroppable({
   return (
     <div
       ref={setNodeRef}
-      className={`flex w-[300px] shrink-0 flex-col rounded-2xl border border-border bg-muted/40 p-3 transition ${isOver ? "ring-2 ring-primary-500/40 bg-primary-50/50" : ""}`}
+      className={`flex w-[300px] shrink-0 flex-col rounded-2xl border border-border bg-muted/40 p-3 transition-all duration-150 ${isOver ? "ring-2 ring-primary-500/50 bg-primary-50/60 border-primary-300" : ""}`}
     >
       <div className="mb-3 flex items-center justify-between px-1">
         <div className="flex items-center gap-2">
@@ -431,11 +431,17 @@ function SortableTaskCard({
     transform,
     transition,
     isDragging,
-  } = useSortable({ id: task.id });
+  } = useSortable({ 
+    id: task.id,
+    transition: {
+      duration: 200,
+      easing: 'cubic-bezier(0.25, 1, 0.5, 1)',
+    },
+  });
   const style = {
     transform: CSS.Transform.toString(transform),
     transition,
-    opacity: isDragging ? 0.35 : 1,
+    opacity: isDragging ? 0.4 : 1,
   };
 
   return (
@@ -491,8 +497,12 @@ function TaskCard({
   return (
     <motion.div
       layout="position"
+      layoutId={`task-${task.id}`}
+      transition={{
+        layout: { duration: 0.2, ease: [0.25, 1, 0.5, 1] }
+      }}
       onClick={editing ? undefined : onOpen}
-      className={`rounded-xl border bg-card p-3 shadow-sm transition ${onOpen && !editing ? "cursor-pointer" : ""} ${selected ? "border-primary-500 ring-2 ring-primary-500/20" : "border-border"} ${dragging ? "rotate-2 shadow-xl ring-2 ring-primary-500/40" : "hover:border-primary-500/30 hover:shadow-md"}`}
+      className={`rounded-xl border bg-card p-3 shadow-sm transition-all duration-150 ${onOpen && !editing ? "cursor-pointer" : ""} ${selected ? "border-primary-500 ring-2 ring-primary-500/20" : "border-border"} ${dragging ? "rotate-2 scale-105 shadow-2xl ring-2 ring-primary-500/50" : "hover:border-primary-400 hover:shadow-md"}`}
     >
       <div className="flex items-start gap-2">
         {dragHandle ?? <span className="mt-0.5 h-6 w-6" />}

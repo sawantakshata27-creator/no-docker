@@ -181,7 +181,13 @@ function Editor({ doc, boards, onDelete }: { doc: Doc; boards: { id: string; nam
 
   const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const files = Array.from(e.target.files ?? []);
-    if (!files.length || !org) return;
+    if (!files.length) return;
+
+    if (!org || !user) {
+      toast.error("Your workspace is still loading — try again in a moment.");
+      e.target.value = "";
+      return;
+    }
 
     setUploading(true);
     try {
@@ -190,13 +196,26 @@ function Editor({ doc, boards, onDelete }: { doc: Doc; boards: { id: string; nam
         const { error } = await supabase.storage
           .from("document-files")
           .upload(filePath, file, { upsert: true });
-        
+
         if (error) throw error;
       }
       toast.success(`${files.length} file(s) uploaded`);
       qc.invalidateQueries({ queryKey: ["doc-files", doc.id] });
     } catch (error: any) {
-      toast.error(error.message || "Upload failed");
+      const raw = (error?.message || error?.error || "").toString();
+      const isRls =
+        error?.statusCode === "403" ||
+        error?.status === 403 ||
+        /row-level security|row level security|violates.*policy|unauthorized/i.test(raw);
+
+      if (isRls) {
+        toast.error(
+          "You don't have permission to upload to this workspace. Ask an admin to confirm your membership is active, then try again.",
+          { duration: 6000 }
+        );
+      } else {
+        toast.error(raw || "Upload failed");
+      }
     } finally {
       setUploading(false);
       e.target.value = "";
@@ -244,7 +263,7 @@ function Editor({ doc, boards, onDelete }: { doc: Doc; boards: { id: string; nam
         <ToolbarBtn active={editor.isActive("orderedList")} onClick={() => editor.chain().focus().toggleOrderedList().run()}><ListOrdered className="h-4 w-4" /></ToolbarBtn>
         <ToolbarBtn active={editor.isActive("blockquote")} onClick={() => editor.chain().focus().toggleBlockquote().run()}><Quote className="h-4 w-4" /></ToolbarBtn>
         <ToolbarBtn active={editor.isActive("codeBlock")} onClick={() => editor.chain().focus().toggleCodeBlock().run()}><Code className="h-4 w-4" /></ToolbarBtn>
-        <label className="ml-auto flex h-8 cursor-pointer items-center gap-1.5 rounded px-2.5 text-xs font-medium text-muted-foreground transition hover:bg-primary-50 hover:text-primary-700">
+        <label className="ml-auto flex h-8 cursor-pointer items-center gap-1.5 rounded px-2.5 text-xs font-medium text-muted-foreground transition hover:bg-primary-50 hover:text-primary-700" data-testid="document-upload-label">
           <Upload className="h-4 w-4" />
           <span className="hidden sm:inline">{uploading ? "Uploading..." : "Upload File"}</span>
           <input
@@ -253,6 +272,7 @@ function Editor({ doc, boards, onDelete }: { doc: Doc; boards: { id: string; nam
             disabled={uploading}
             className="hidden"
             onChange={handleFileUpload}
+            data-testid="document-upload-input"
           />
         </label>
       </div>

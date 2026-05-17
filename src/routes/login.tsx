@@ -43,7 +43,8 @@ function LoginPage() {
       if (profile && !profile.onboarded) navigate({ to: "/onboarding" });
       else if (profile?.onboarded) navigate({ to: "/dashboard" });
     }
-  }, [session, profile, navigate]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [session, profile]);
 
   const handleEmail = async (e: React.FormEvent) => {
     e.preventDefault();

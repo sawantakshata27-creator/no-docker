@@ -1,4 +1,4 @@
-import { LogOut, Settings2, AlertTriangle, Sun, Moon } from "lucide-react";
+import { LogOut, Settings2, AlertTriangle, Sun, Moon, ChevronDown } from "lucide-react";
 import { useNavigate } from "@tanstack/react-router";
 import { useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
@@ -14,6 +14,7 @@ export function Topbar() {
   const navigate = useNavigate();
   const { dark, toggle } = useTheme();
   const [logoutConfirm, setLogoutConfirm] = useState(false);
+  const [profileDropdownOpen, setProfileDropdownOpen] = useState(false);
 
   const hour = new Date().getHours();
   const greet = hour < 12 ? "Good morning" : hour < 18 ? "Good afternoon" : "Good evening";
@@ -76,19 +77,64 @@ export function Topbar() {
 
         <NotificationsPanel />
 
-        <button
-          onClick={() => navigate({ to: "/settings" })}
-          data-testid="topbar-profile-btn"
-          className="ml-1.5 flex items-center gap-2.5 rounded-full border border-border bg-card px-2 py-1 transition hover:border-primary-300 hover:bg-muted/40"
-          title="Open profile settings"
-        >
-          <UserAvatar name={profile?.full_name ?? profile?.email} avatarUrl={profile?.avatar_url} size="sm" />
-          <div className="hidden text-xs leading-tight lg:block">
-            <div className="font-semibold">{profile?.full_name ?? "User"}</div>
-            <div className="text-muted-foreground">{org?.code ?? "No org"}</div>
-          </div>
-          <Settings2 className="mr-1 h-3.5 w-3.5 text-muted-foreground" />
-        </button>
+        <div className="relative ml-1.5">
+          <button
+            onClick={() => setProfileDropdownOpen(!profileDropdownOpen)}
+            data-testid="topbar-profile-btn"
+            className="flex items-center gap-2.5 rounded-full border border-border bg-card px-2 py-1 transition hover:border-primary-300 hover:bg-muted/40"
+            title="Profile menu"
+          >
+            <UserAvatar name={profile?.full_name ?? profile?.email} avatarUrl={profile?.avatar_url} size="sm" />
+            <div className="hidden text-xs leading-tight lg:block">
+              <div className="font-semibold">{profile?.full_name ?? "User"}</div>
+              <div className="text-muted-foreground">{org?.code ?? "No org"}</div>
+            </div>
+            <ChevronDown className={`mr-1 h-3.5 w-3.5 text-muted-foreground transition-transform ${profileDropdownOpen ? 'rotate-180' : ''}`} />
+          </button>
+
+          <AnimatePresence>
+            {profileDropdownOpen && (
+              <>
+                <div 
+                  className="fixed inset-0 z-40" 
+                  onClick={() => setProfileDropdownOpen(false)} 
+                />
+                <motion.div
+                  initial={{ opacity: 0, y: -8, scale: 0.95 }}
+                  animate={{ opacity: 1, y: 0, scale: 1 }}
+                  exit={{ opacity: 0, y: -8, scale: 0.95 }}
+                  transition={{ duration: 0.15 }}
+                  className="absolute right-0 top-11 z-50 w-56 overflow-hidden rounded-2xl border border-border bg-popover shadow-xl"
+                  data-testid="profile-dropdown"
+                >
+                  <div className="p-1.5">
+                    <button
+                      onClick={() => {
+                        setProfileDropdownOpen(false);
+                        navigate({ to: "/settings" });
+                      }}
+                      className="flex w-full items-center gap-3 rounded-lg px-3 py-2.5 text-sm text-foreground transition hover:bg-muted"
+                    >
+                      <Settings2 className="h-4 w-4 text-muted-foreground" />
+                      <span className="font-medium">Settings</span>
+                    </button>
+                    <div className="my-1 h-px bg-border" />
+                    <button
+                      onClick={() => {
+                        setProfileDropdownOpen(false);
+                        setLogoutConfirm(true);
+                      }}
+                      className="flex w-full items-center gap-3 rounded-lg px-3 py-2.5 text-sm text-destructive transition hover:bg-destructive/10"
+                    >
+                      <LogOut className="h-4 w-4" />
+                      <span className="font-medium">Sign out</span>
+                    </button>
+                  </div>
+                </motion.div>
+              </>
+            )}
+          </AnimatePresence>
+        </div>
 
         <div className="relative">
           <AnimatePresence>

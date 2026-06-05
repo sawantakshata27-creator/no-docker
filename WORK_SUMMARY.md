@@ -171,3 +171,57 @@ You should see:
 5. Only src/ folder with TypeScript files
 
 **Everything is pushed and ready!** 🎉
+
+---
+
+## 📌 Repo Analysis & Roadmap (Jan 2026)
+
+### Goal
+A **Jira-like document workflow app** (Atlassian-style) for moving documents through Create → Preprocess → Associate → Adjust → QA → Deliver. Kanban board, analytics, team management, document storage.
+
+### Current Tech Stack
+- **Frontend:** TanStack Start (React 19) + TypeScript + Tailwind v4 + Radix UI + Framer Motion
+- **Auth & DB:** Supabase (PostgreSQL + Auth + Storage with RLS)
+- **State:** Zustand
+- **Routing:** File-based via `src/routes/`
+- **Deploy:** Cloudflare Workers (`wrangler.jsonc`, `@cloudflare/vite-plugin`)
+
+### High-Level Structure
+```
+src/
+├── routes/
+│   ├── index.tsx            → Landing page
+│   ├── login.tsx            → Auth (email + Google OAuth)
+│   ├── auth.callback.tsx    → OAuth PKCE handler
+│   └── _authenticated/      → Protected app (dashboard, board, tasks, etc.)
+├── components/
+│   ├── kanban/KanbanBoard.tsx
+│   ├── layout/{AppLayout,Sidebar,Topbar,GlobalSearch,NotificationsPanel,OrgSwitcher}.tsx
+│   ├── tasks/TaskDetailsDrawer.tsx
+│   └── ui/                  → shadcn/Radix primitives
+├── integrations/            → Supabase client
+└── lib/                     → utilities + theme store
+
+supabase/migrations/         → 8 SQL migration files (RLS, scheduled delivery date, document-files bucket, etc.)
+```
+
+### Active GitHub Issues
+- **#3 — The landing page** (this PR): hero typography, social-proof imagery, scroll indicator, navbar distribution.
+
+### Open Improvement Backlog
+- P1 — Pre-existing TS errors in `dashboard.tsx`, `theme-store.ts`, `GlobalSearch.tsx` (framer-motion v11 `ease: number[]` typing + nullable string). Non-blocking at runtime but should be cleaned up.
+- P1 — Add `og:image` / Twitter card meta for shareable landing.
+- P2 — Replace placeholder "trusted by" wordmarks with real partner SVGs once available.
+- P2 — Skeleton/lazy-load for Kanban board on slow connections.
+- P2 — Empty-state illustrations for board/tasks/documents pages.
+
+---
+
+## 🔧 PR History
+
+### PR — fix(landing): polish hero, social-proof, scroll cue & navbar (closes #3)
+- **Hero typography** → split "Document workflow." into two artistic lines using the Fraunces display serif: italicised "workflow" with a hand-drawn SVG underline, gradient "eliminated" with sparkle accent. Strong opsz + font-feature variants for editorial feel.
+- **Social proof** → replaced empty gradient circles with 5 DiceBear illustrated team avatars + 5-star rating ("4.9 / 5") + "Trusted by" wordmark row (Helvetia, Northwind, Lumen, Atlas, Veritas).
+- **Scroll-to-explore** → now scroll-linked via `useScroll` / `useTransform`: fully visible at top, fades to 0 by ~160px scroll. Redesigned as an animated orbit with rotating dots, pulse ring, and gradient core.
+- **Navbar** → switched from `flex justify-between` to a 3-column CSS grid (`auto_1fr_auto`) so links are truly centered. Added scrolled-state styling (border + bg opacity change), and a mobile hamburger drawer (`Menu` / `X` from lucide).
+

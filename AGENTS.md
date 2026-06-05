@@ -240,6 +240,9 @@ These are the human owner's exact answers to setup questions. Treat as binding.
 
 ## 11. Changelog (append at the top of the list)
 
+- **2026-01 — `feat/board-quick-filter`**: Added a quick search/filter input above the
+  Kanban columns. Filters cards by title / description / process_stage in real time,
+  shows `X of Y` count, clears on Esc. Self-contained in `KanbanBoard.tsx`.
 - **2026-01 — `docs/agents-handover-guide`**: Added this `AGENTS.md` so future agents
   have a single, accurate handover doc (README is outdated, EMERGENT_HANDOVER.md is
   Emergent-specific).

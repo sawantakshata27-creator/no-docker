@@ -48,17 +48,30 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
     meta: [
       { charSet: "utf-8" },
       { name: "viewport", content: "width=device-width, initial-scale=1" },
-      { title: "2DS Workflow — Enterprise Workflow OS" },
-      { name: "description", content: "Document signing workflow OS with Kanban, analytics, and team collaboration." },
-      { property: "og:title", content: "2DS Workflow — Enterprise Workflow OS" },
-      { name: "twitter:title", content: "2DS Workflow — Enterprise Workflow OS" },
-      { property: "og:description", content: "Document signing workflow OS with Kanban, analytics, and team collaboration." },
-      { name: "twitter:description", content: "Document signing workflow OS with Kanban, analytics, and team collaboration." },
-      { name: "twitter:card", content: "summary_large_image" },
+      { name: "theme-color", content: "#1e4eda" },
+      { title: "2DS Workflow — Document workflow. Chaos eliminated." },
+      { name: "description", content: "Kanban-powered document workflow OS. Move work through Create → QA → Deliver with real-time analytics, role-based controls, and a board your team learns in five minutes." },
+      { name: "robots", content: "index,follow" },
+      { name: "author", content: "2DS Workflow" },
+
+      // Open Graph
+      { property: "og:site_name", content: "2DS Workflow" },
       { property: "og:type", content: "website" },
+      { property: "og:title", content: "2DS Workflow — Document workflow. Chaos eliminated." },
+      { property: "og:description", content: "Kanban-powered document workflow OS with real-time analytics and team controls." },
+      { property: "og:image", content: "/2ds-workflow-logo.png" },
+      { property: "og:image:alt", content: "2DS Workflow logo" },
+
+      // Twitter
+      { name: "twitter:card", content: "summary_large_image" },
+      { name: "twitter:title", content: "2DS Workflow — Document workflow. Chaos eliminated." },
+      { name: "twitter:description", content: "Kanban-powered document workflow OS with real-time analytics and team controls." },
+      { name: "twitter:image", content: "/2ds-workflow-logo.png" },
     ],
     links: [
       { rel: "stylesheet", href: appCss },
+      { rel: "icon", type: "image/png", href: "/2ds-workflow-logo.png" },
+      { rel: "apple-touch-icon", href: "/2ds-workflow-logo.png" },
       { rel: "preconnect", href: "https://fonts.googleapis.com" },
       { rel: "preconnect", href: "https://fonts.gstatic.com", crossOrigin: "" },
       { rel: "stylesheet", href: "https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,500;9..144,600;9..144,700;9..144,800&family=Geist:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600&family=Space+Grotesk:wght@400;500;600;700&family=Archivo+Black&display=swap" },

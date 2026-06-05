@@ -17,7 +17,7 @@ import {
 } from "@dnd-kit/core";
 import { SortableContext, sortableKeyboardCoordinates, useSortable, verticalListSortingStrategy } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
-import { Calendar, GripVertical, Plus } from "lucide-react";
+import { Calendar, GripVertical, Plus, Search, X } from "lucide-react";
 import { motion } from "framer-motion";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
@@ -38,6 +38,7 @@ export function KanbanBoard({ boardId, userId, columns, tasks: initialTasks, onC
   const [selectedTaskId, setSelectedTaskId] = useState<string | null>(null);
   const [addingTo, setAddingTo] = useState<string | null>(null);
   const [newTitle, setNewTitle] = useState("");
+  const [filterQuery, setFilterQuery] = useState("");
   const dragSnapshotRef = useRef<TaskRecord[]>(sortTasks(initialTasks));
 
   useEffect(() => {
@@ -197,8 +198,53 @@ export function KanbanBoard({ boardId, userId, columns, tasks: initialTasks, onC
     onChange();
   };
 
+  const normalizedFilter = filterQuery.trim().toLowerCase();
+  const matchesFilter = (task: TaskRecord) => {
+    if (!normalizedFilter) return true;
+    const haystack = `${task.title} ${task.description ?? ""} ${task.process_stage ?? ""}`.toLowerCase();
+    return haystack.includes(normalizedFilter);
+  };
+  const visibleCount = normalizedFilter ? tasks.filter(matchesFilter).length : tasks.length;
+
   return (
     <>
+      <div className="mb-4 flex flex-wrap items-center gap-3" data-testid="board-filter-bar">
+        <div className="relative w-full max-w-md">
+          <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+          <input
+            type="text"
+            value={filterQuery}
+            onChange={(event) => setFilterQuery(event.target.value)}
+            onKeyDown={(event) => {
+              if (event.key === "Escape") setFilterQuery("");
+            }}
+            placeholder="Filter cards by title or description..."
+            className="input-field h-10 w-full pl-9 pr-9 text-sm"
+            data-testid="board-filter-input"
+            aria-label="Filter tasks"
+          />
+          {filterQuery ? (
+            <button
+              type="button"
+              onClick={() => setFilterQuery("")}
+              className="absolute right-2 top-1/2 grid h-7 w-7 -translate-y-1/2 place-items-center rounded-md text-muted-foreground transition hover:bg-muted hover:text-foreground"
+              aria-label="Clear filter"
+              title="Clear filter (Esc)"
+              data-testid="board-filter-clear-btn"
+            >
+              <X className="h-4 w-4" />
+            </button>
+          ) : null}
+        </div>
+        {filterQuery ? (
+          <span
+            className="rounded-full bg-primary-50 px-3 py-1 text-xs font-medium text-primary-700 ring-1 ring-primary-200"
+            data-testid="board-filter-count"
+          >
+            {visibleCount} of {tasks.length} {tasks.length === 1 ? "task" : "tasks"}
+          </span>
+        ) : null}
+      </div>
       <DndContext
         sensors={sensors}
         collisionDetection={collisionDetection}
@@ -210,7 +256,7 @@ export function KanbanBoard({ boardId, userId, columns, tasks: initialTasks, onC
         <div className="flex gap-5 overflow-x-auto pb-6">
           {orderedColumns.map((column) => {
             const items = tasks
-              .filter((task) => task.column_id === column.id)
+              .filter((task) => task.column_id === column.id && matchesFilter(task))
               .sort((a, b) => a.position - b.position);
             return (
               <ColumnDroppable
@@ -233,6 +279,14 @@ export function KanbanBoard({ boardId, userId, columns, tasks: initialTasks, onC
                         selected={selectedTaskId === task.id}
                       />
                     ))}
+                    {items.length === 0 && normalizedFilter ? (
+                      <div
+                        className="rounded-lg border border-dashed border-border px-3 py-4 text-center text-xs text-muted-foreground"
+                        data-testid={`board-filter-empty-${column.id}`}
+                      >
+                        No matches
+                      </div>
+                    ) : null}
                   </div>
                 </SortableContext>
 

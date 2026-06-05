@@ -1,6 +1,6 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
-import { motion, useMotionValue, useTransform } from "framer-motion";
-import { useState } from "react";
+import { motion, useMotionValue, useScroll, useTransform } from "framer-motion";
+import { useEffect, useState } from "react";
 import {
   ArrowRight,
   CheckCircle2,
@@ -13,6 +13,9 @@ import {
   TrendingUp,
   PlayCircle,
   Rocket,
+  Star,
+  Menu,
+  X,
 } from "lucide-react";
 import { ThemeToggle } from "@/components/ui/theme-toggle";
 
@@ -27,10 +30,34 @@ const FEATURES = [
   { icon: Globe, title: "Anywhere, any device", body: "Beautiful on the laptop, sharp on mobile. One workspace for distributed document teams." },
 ];
 
+// DiceBear "notionists" — soft, illustrated avatars. Free, no auth required.
+const TEAM_AVATARS = [
+  { seed: "Aria", ring: "ring-primary-500/40" },
+  { seed: "Kenji", ring: "ring-accent2/40" },
+  { seed: "Priya", ring: "ring-primary-300/40" },
+  { seed: "Mateo", ring: "ring-primary-700/40" },
+  { seed: "Zoe", ring: "ring-accent2/40" },
+];
+
+const TRUSTED_LOGOS = ["Helvetia", "Northwind", "Lumen", "Atlas", "Veritas"];
+
 function LandingPage() {
   const [isHoveringCTA, setIsHoveringCTA] = useState(false);
+  const [mobileNavOpen, setMobileNavOpen] = useState(false);
+  const [scrolled, setScrolled] = useState(false);
   const mouseX = useMotionValue(0);
   const mouseY = useMotionValue(0);
+  const { scrollY } = useScroll();
+  // Scroll indicator opacity — fully visible until user scrolls past ~120px
+  const scrollIndicatorOpacity = useTransform(scrollY, [0, 80, 160], [1, 0.5, 0]);
+  const scrollIndicatorY = useTransform(scrollY, [0, 200], [0, 30]);
+
+  useEffect(() => {
+    const onScroll = () => setScrolled(window.scrollY > 24);
+    onScroll();
+    window.addEventListener("scroll", onScroll, { passive: true });
+    return () => window.removeEventListener("scroll", onScroll);
+  }, []);
 
   const handleMouseMove = (e: React.MouseEvent) => {
     const rect = e.currentTarget.getBoundingClientRect();
@@ -40,71 +67,47 @@ function LandingPage() {
 
   return (
     <div className="relative min-h-screen overflow-hidden bg-surface text-foreground">
-      {/* Enhanced Backdrop orbs with parallax */}
-      <motion.div 
+      {/* Backdrop orbs */}
+      <motion.div
         className="pointer-events-none absolute -top-40 -left-40 h-[520px] w-[520px] rounded-full bg-gradient-to-br from-primary-300/40 to-primary-600/30 blur-[120px]"
-        animate={{
-          y: [0, 30, 0],
-          scale: [1, 1.05, 1],
-        }}
-        transition={{
-          duration: 8,
-          repeat: Infinity,
-          ease: "easeInOut"
-        }}
+        animate={{ y: [0, 30, 0], scale: [1, 1.05, 1] }}
+        transition={{ duration: 8, repeat: Infinity, ease: "easeInOut" }}
       />
-      <motion.div 
+      <motion.div
         className="pointer-events-none absolute top-1/3 -right-32 h-[440px] w-[440px] rounded-full bg-gradient-to-br from-accent2/40 to-primary-200/30 blur-[140px]"
-        animate={{
-          x: [0, 40, 0],
-          y: [0, -30, 0],
-        }}
-        transition={{
-          duration: 10,
-          repeat: Infinity,
-          ease: "easeInOut"
-        }}
+        animate={{ x: [0, 40, 0], y: [0, -30, 0] }}
+        transition={{ duration: 10, repeat: Infinity, ease: "easeInOut" }}
       />
-      <motion.div 
+      <motion.div
         className="pointer-events-none absolute bottom-0 left-1/4 h-[380px] w-[380px] rounded-full bg-gradient-to-tr from-primary-200/40 to-transparent blur-[120px]"
-        animate={{
-          x: [0, -30, 0],
-          scale: [1, 1.08, 1],
-        }}
-        transition={{
-          duration: 12,
-          repeat: Infinity,
-          ease: "easeInOut"
-        }}
+        animate={{ x: [0, -30, 0], scale: [1, 1.08, 1] }}
+        transition={{ duration: 12, repeat: Infinity, ease: "easeInOut" }}
       />
-      
+
       {/* Floating particles */}
       {[...Array(6)].map((_, i) => (
         <motion.div
           key={i}
           className="pointer-events-none absolute h-2 w-2 rounded-full bg-primary-400/30"
-          style={{
-            left: `${20 + i * 15}%`,
-            top: `${30 + i * 10}%`,
-          }}
-          animate={{
-            y: [0, -100, 0],
-            opacity: [0.2, 0.6, 0.2],
-          }}
-          transition={{
-            duration: 4 + i,
-            repeat: Infinity,
-            ease: "easeInOut",
-            delay: i * 0.5,
-          }}
+          style={{ left: `${20 + i * 15}%`, top: `${30 + i * 10}%` }}
+          animate={{ y: [0, -100, 0], opacity: [0.2, 0.6, 0.2] }}
+          transition={{ duration: 4 + i, repeat: Infinity, ease: "easeInOut", delay: i * 0.5 }}
         />
       ))}
 
-      {/* Nav */}
-      <nav className="fixed inset-x-0 top-0 z-50 border-b border-border/60 bg-background/60 backdrop-blur-xl">
-        <div className="mx-auto flex max-w-7xl items-center justify-between px-6 py-3.5">
+      {/* ─── Nav: balanced 3-column grid so center links are truly centered ─── */}
+      <nav
+        className={`fixed inset-x-0 top-0 z-50 border-b transition-all duration-300 ${
+          scrolled
+            ? "border-border/70 bg-background/85 shadow-sm backdrop-blur-xl"
+            : "border-transparent bg-background/40 backdrop-blur-md"
+        }`}
+        data-testid="landing-nav"
+      >
+        <div className="mx-auto grid max-w-7xl grid-cols-[auto_1fr_auto] items-center gap-6 px-6 py-3.5">
+          {/* Left: Logo */}
           <Link to="/" className="flex items-center gap-2.5" data-testid="landing-logo">
-            <motion.div 
+            <motion.div
               className="grid h-10 w-10 place-items-center rounded-2xl bg-gradient-to-br from-primary-600 to-primary-800 font-display text-sm font-semibold text-white shadow-lg shadow-primary-600/30"
               whileHover={{ rotate: 360, scale: 1.1 }}
               transition={{ duration: 0.6, ease: "easeInOut" }}
@@ -114,46 +117,76 @@ function LandingPage() {
             <span className="font-display text-lg font-semibold tracking-tight">2DS Workflow</span>
           </Link>
 
-          <div className="hidden items-center gap-8 md:flex">
-            <a href="#features" className="nav-link text-sm">Features</a>
-            <a href="#workflow" className="nav-link text-sm">Workflow</a>
-            <a href="#pricing" className="nav-link text-sm">Pricing</a>
+          {/* Center: Nav links — truly centered */}
+          <div className="hidden items-center justify-center gap-10 md:flex">
+            <a href="#features" className="nav-link text-sm font-medium" data-testid="nav-features">Features</a>
+            <a href="#workflow" className="nav-link text-sm font-medium" data-testid="nav-workflow">Workflow</a>
+            <a href="#pricing" className="nav-link text-sm font-medium" data-testid="nav-pricing">Pricing</a>
           </div>
 
-          <div className="flex items-center gap-3">
+          {/* Right: Theme + CTA */}
+          <div className="flex items-center gap-3 justify-self-end">
             <ThemeToggle />
             <Link
               to="/login"
-              className="btn-primary inline-flex items-center gap-2"
+              className="btn-primary hidden md:inline-flex items-center gap-2"
               data-testid="landing-get-started-btn"
             >
               Get Started
               <ArrowRight className="h-4 w-4" />
             </Link>
+            <button
+              type="button"
+              aria-label="Toggle navigation"
+              onClick={() => setMobileNavOpen((v) => !v)}
+              className="md:hidden inline-flex h-10 w-10 items-center justify-center rounded-xl border border-border/70 bg-card/60 text-foreground backdrop-blur"
+              data-testid="mobile-nav-toggle"
+            >
+              {mobileNavOpen ? <X className="h-5 w-5" /> : <Menu className="h-5 w-5" />}
+            </button>
           </div>
         </div>
+
+        {/* Mobile nav drawer */}
+        {mobileNavOpen && (
+          <motion.div
+            initial={{ opacity: 0, y: -8 }}
+            animate={{ opacity: 1, y: 0 }}
+            className="md:hidden border-t border-border/60 bg-background/95 backdrop-blur-xl"
+          >
+            <div className="mx-auto flex max-w-7xl flex-col gap-1 px-6 py-3">
+              <a href="#features" onClick={() => setMobileNavOpen(false)} className="rounded-lg px-3 py-2 text-sm font-medium hover:bg-card">Features</a>
+              <a href="#workflow" onClick={() => setMobileNavOpen(false)} className="rounded-lg px-3 py-2 text-sm font-medium hover:bg-card">Workflow</a>
+              <a href="#pricing" onClick={() => setMobileNavOpen(false)} className="rounded-lg px-3 py-2 text-sm font-medium hover:bg-card">Pricing</a>
+              <Link
+                to="/login"
+                onClick={() => setMobileNavOpen(false)}
+                className="btn-primary mt-2 inline-flex items-center justify-center gap-2"
+              >
+                Get Started <ArrowRight className="h-4 w-4" />
+              </Link>
+            </div>
+          </motion.div>
+        )}
       </nav>
 
-      {/* Hero */}
+      {/* ─── Hero ─── */}
       <section className="relative px-6 pt-36 pb-24">
         <div className="mx-auto max-w-7xl">
           <div className="grid items-center gap-14 lg:grid-cols-[1.05fr_1fr]">
-            <motion.div 
-              initial={{ opacity: 0, y: 24 }} 
-              animate={{ opacity: 1, y: 0 }} 
+            <motion.div
+              initial={{ opacity: 0, y: 24 }}
+              animate={{ opacity: 1, y: 0 }}
               transition={{ duration: 0.7, ease: [0.16, 1, 0.3, 1] }}
             >
-              <motion.div 
+              <motion.div
                 className="mb-6 inline-flex items-center gap-2 rounded-full border border-primary-200/70 bg-primary-50/60 px-3.5 py-1.5 backdrop-blur"
                 initial={{ scale: 0.8, opacity: 0 }}
                 animate={{ scale: 1, opacity: 1 }}
                 transition={{ duration: 0.5, delay: 0.2 }}
                 whileHover={{ scale: 1.05 }}
               >
-                <motion.div
-                  animate={{ rotate: 360 }}
-                  transition={{ duration: 3, repeat: Infinity, ease: "linear" }}
-                >
+                <motion.div animate={{ rotate: 360 }} transition={{ duration: 3, repeat: Infinity, ease: "linear" }}>
                   <Sparkles className="h-3.5 w-3.5 text-primary-700" />
                 </motion.div>
                 <span className="text-[11px] font-semibold uppercase tracking-[0.18em] text-primary-700">
@@ -161,40 +194,88 @@ function LandingPage() {
                 </span>
               </motion.div>
 
-              <h1 className="font-display text-[3.25rem] leading-[1.02] tracking-tight md:text-[4.25rem]">
-                <motion.span 
-                  className="block"
+              {/* ── Artistic hero headline ── */}
+              <h1
+                className="font-display tracking-tight"
+                data-testid="hero-heading"
+                style={{ fontFeatureSettings: '"ss01","ss02","ss03","liga"', fontVariationSettings: '"opsz" 120' }}
+              >
+                <motion.span
+                  className="block text-[3rem] font-semibold leading-[1.02] md:text-[4.5rem] lg:text-[5rem]"
                   initial={{ opacity: 0, y: 20 }}
                   animate={{ opacity: 1, y: 0 }}
-                  transition={{ duration: 0.6, delay: 0.3 }}
+                  transition={{ duration: 0.7, delay: 0.3 }}
                 >
-                  Document workflow.
+                  Document{" "}
+                  <span className="relative inline-block italic">
+                    workflow
+                    <motion.svg
+                      viewBox="0 0 320 18"
+                      preserveAspectRatio="none"
+                      className="absolute -bottom-2 left-0 h-3 w-full text-accent2"
+                      initial={{ opacity: 0 }}
+                      animate={{ opacity: 1 }}
+                      transition={{ delay: 1.2, duration: 0.4 }}
+                      aria-hidden="true"
+                    >
+                      <motion.path
+                        d="M2 11 C 70 2, 150 16, 220 6 S 310 12, 318 8"
+                        fill="none"
+                        stroke="currentColor"
+                        strokeWidth="3"
+                        strokeLinecap="round"
+                        initial={{ pathLength: 0 }}
+                        animate={{ pathLength: 1 }}
+                        transition={{ delay: 1.1, duration: 1.2, ease: "easeInOut" }}
+                      />
+                    </motion.svg>
+                  </span>
+                  .
                 </motion.span>
-                <motion.span 
-                  className="block italic text-primary-700"
+
+                <motion.span
+                  className="mt-2 flex flex-wrap items-baseline gap-x-4 text-[3rem] leading-[1.02] md:text-[4.5rem] lg:text-[5rem]"
                   initial={{ opacity: 0, y: 20 }}
                   animate={{ opacity: 1, y: 0 }}
-                  transition={{ duration: 0.6, delay: 0.5 }}
+                  transition={{ duration: 0.7, delay: 0.55 }}
                 >
-                  Chaos eliminated.
+                  <span className="font-light italic text-muted-foreground/80">Chaos</span>
+                  <span className="relative">
+                    <span
+                      className="bg-gradient-to-br from-primary-700 via-primary-600 to-accent2 bg-clip-text font-semibold text-transparent"
+                      style={{ WebkitTextStroke: "0.5px transparent" }}
+                    >
+                      eliminated
+                    </span>
+                    <motion.span
+                      aria-hidden="true"
+                      className="absolute -right-3 -top-2 text-2xl text-accent2 md:-top-4 md:text-3xl"
+                      initial={{ scale: 0, rotate: -30 }}
+                      animate={{ scale: 1, rotate: 0 }}
+                      transition={{ delay: 1.4, type: "spring", stiffness: 200 }}
+                    >
+                      ✦
+                    </motion.span>
+                  </span>
+                  <span className="font-display text-primary-700">.</span>
                 </motion.span>
               </h1>
 
-              <motion.p 
+              <motion.p
                 className="mt-7 max-w-xl text-[1.0625rem] leading-relaxed text-muted-foreground"
                 initial={{ opacity: 0 }}
                 animate={{ opacity: 1 }}
-                transition={{ duration: 0.6, delay: 0.7 }}
+                transition={{ duration: 0.6, delay: 0.85 }}
               >
-                A powerful workspace for moving documents through creation, QA and delivery. 
+                A powerful workspace for moving documents through creation, QA and delivery.
                 Kanban boards, real-time analytics, and team controls — all in one place.
               </motion.p>
 
-              <motion.div 
+              <motion.div
                 className="mt-10 flex flex-wrap items-center gap-4"
                 initial={{ opacity: 0, y: 20 }}
                 animate={{ opacity: 1, y: 0 }}
-                transition={{ duration: 0.6, delay: 0.9 }}
+                transition={{ duration: 0.6, delay: 1 }}
               >
                 <Link
                   to="/login"
@@ -203,77 +284,79 @@ function LandingPage() {
                   onMouseEnter={() => setIsHoveringCTA(true)}
                   onMouseLeave={() => setIsHoveringCTA(false)}
                 >
-                  {/* Animated gradient overlay */}
                   <motion.div
                     className="absolute inset-0 bg-gradient-to-r from-accent2/30 via-primary-500/30 to-accent2/30"
-                    animate={{
-                      x: isHoveringCTA ? ['-100%', '100%'] : '0%',
-                    }}
-                    transition={{
-                      duration: 1.5,
-                      repeat: isHoveringCTA ? Infinity : 0,
-                      ease: "linear"
-                    }}
+                    animate={{ x: isHoveringCTA ? ["-100%", "100%"] : "0%" }}
+                    transition={{ duration: 1.5, repeat: isHoveringCTA ? Infinity : 0, ease: "linear" }}
                   />
-                  
-                  {/* Sparkle effect */}
-                  <motion.div
-                    className="absolute inset-0"
-                    animate={{
-                      background: isHoveringCTA 
-                        ? 'radial-gradient(circle at var(--mouse-x, 50%) var(--mouse-y, 50%), rgba(255,255,255,0.2) 0%, transparent 50%)'
-                        : 'transparent'
-                    }}
-                  />
-                  
                   <span className="relative z-10 flex items-center gap-2">
                     <Rocket className="h-5 w-5" />
                     Get Started Free
-                    <motion.div
-                      animate={{ x: isHoveringCTA ? 5 : 0 }}
-                      transition={{ duration: 0.3 }}
-                    >
+                    <motion.div animate={{ x: isHoveringCTA ? 5 : 0 }} transition={{ duration: 0.3 }}>
                       <ArrowRight className="h-4 w-4" />
                     </motion.div>
                   </span>
                 </Link>
-                
-                <a
-                  href="#workflow"
-                  className="btn-ghost inline-flex items-center gap-2"
-                  data-testid="hero-watch-demo-btn"
-                >
+
+                <a href="#workflow" className="btn-ghost inline-flex items-center gap-2" data-testid="hero-watch-demo-btn">
                   <PlayCircle className="h-4 w-4 text-primary-700" />
                   Watch a 90-sec tour
                 </a>
               </motion.div>
 
-              <motion.div 
-                className="mt-12 flex items-center gap-5"
+              {/* ── Social proof: real avatars + stars + trusted-by row ── */}
+              <motion.div
+                className="mt-12 space-y-4"
                 initial={{ opacity: 0 }}
                 animate={{ opacity: 1 }}
-                transition={{ duration: 0.6, delay: 1.1 }}
+                transition={{ duration: 0.6, delay: 1.15 }}
+                data-testid="social-proof"
               >
-                <div className="flex -space-x-2.5">
-                  {[
-                    "from-primary-500 to-primary-700",
-                    "from-accent2 to-primary-500",
-                    "from-primary-600 to-primary-800",
-                    "from-accent2 to-primary-700",
-                  ].map((g, i) => (
-                    <motion.div 
-                      key={i} 
-                      className={`h-9 w-9 rounded-full border-2 border-background bg-gradient-to-br ${g}`}
-                      initial={{ scale: 0, x: -20 }}
-                      animate={{ scale: 1, x: 0 }}
-                      transition={{ duration: 0.4, delay: 1.2 + i * 0.1 }}
-                      whileHover={{ scale: 1.2, zIndex: 10 }}
-                    />
-                  ))}
+                <div className="flex flex-wrap items-center gap-5">
+                  <div className="flex -space-x-3">
+                    {TEAM_AVATARS.map((a, i) => (
+                      <motion.img
+                        key={a.seed}
+                        src={`https://api.dicebear.com/9.x/notionists/svg?seed=${encodeURIComponent(a.seed)}&backgroundColor=c0e5ff,d1ecff,ffd9b5,ffe9c7,e8d8ff&radius=50`}
+                        alt={`${a.seed} avatar`}
+                        loading="lazy"
+                        className={`h-10 w-10 rounded-full border-2 border-background bg-card object-cover shadow-sm ring-2 ${a.ring}`}
+                        initial={{ scale: 0, x: -20 }}
+                        animate={{ scale: 1, x: 0 }}
+                        transition={{ duration: 0.4, delay: 1.2 + i * 0.08 }}
+                        whileHover={{ scale: 1.15, zIndex: 10, y: -3 }}
+                      />
+                    ))}
+                  </div>
+                  <div>
+                    <div className="flex items-center gap-1.5">
+                      {[...Array(5)].map((_, i) => (
+                        <Star key={i} className="h-3.5 w-3.5 fill-accent2 text-accent2" />
+                      ))}
+                      <span className="ml-1 text-xs font-semibold text-foreground">4.9 / 5</span>
+                    </div>
+                    <div className="text-sm">
+                      <span className="font-semibold">1,200+ teams</span>{" "}
+                      <span className="text-muted-foreground">shipping with 2DS</span>
+                    </div>
+                  </div>
                 </div>
-                <div className="text-sm">
-                  <div className="font-semibold">1,200+ teams</div>
-                  <div className="text-muted-foreground">shipping with 2DS</div>
+
+                <div className="flex flex-wrap items-center gap-x-6 gap-y-2 border-t border-border/40 pt-4">
+                  <span className="text-[10px] font-semibold uppercase tracking-[0.18em] text-muted-foreground">
+                    Trusted by
+                  </span>
+                  {TRUSTED_LOGOS.map((name, i) => (
+                    <motion.span
+                      key={name}
+                      className="font-display text-sm font-semibold tracking-tight text-muted-foreground/70 transition-colors hover:text-foreground"
+                      initial={{ opacity: 0, y: 6 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      transition={{ delay: 1.3 + i * 0.06 }}
+                    >
+                      {name}
+                    </motion.span>
+                  ))}
                 </div>
               </motion.div>
             </motion.div>
@@ -291,17 +374,17 @@ function LandingPage() {
                     Today's board
                   </div>
                   <div className="flex gap-1.5">
-                    <motion.span 
+                    <motion.span
                       className="h-2.5 w-2.5 rounded-full bg-destructive/70"
                       animate={{ scale: [1, 1.2, 1] }}
                       transition={{ duration: 2, repeat: Infinity, delay: 0 }}
                     />
-                    <motion.span 
+                    <motion.span
                       className="h-2.5 w-2.5 rounded-full bg-warning/70"
                       animate={{ scale: [1, 1.2, 1] }}
                       transition={{ duration: 2, repeat: Infinity, delay: 0.3 }}
                     />
-                    <motion.span 
+                    <motion.span
                       className="h-2.5 w-2.5 rounded-full bg-success/80"
                       animate={{ scale: [1, 1.2, 1] }}
                       transition={{ duration: 2, repeat: Infinity, delay: 0.6 }}
@@ -334,8 +417,8 @@ function LandingPage() {
                       </div>
                       <div className="space-y-2">
                         {col.tasks.map((t) => (
-                          <motion.div 
-                            key={t} 
+                          <motion.div
+                            key={t}
                             className="rounded-lg border border-border bg-card px-2.5 py-2 text-[11px] font-medium leading-snug shadow-sm"
                             whileHover={{ scale: 1.03, x: 3 }}
                             transition={{ duration: 0.2 }}
@@ -371,31 +454,51 @@ function LandingPage() {
             </motion.div>
           </div>
         </div>
-        
-        {/* Scroll indicator */}
+
+        {/* ── Scroll indicator: innovative + fades out as user scrolls ── */}
         <motion.div
-          className="absolute bottom-8 left-1/2 -translate-x-1/2"
+          className="pointer-events-none absolute bottom-8 left-1/2 -translate-x-1/2"
+          style={{ opacity: scrollIndicatorOpacity, y: scrollIndicatorY }}
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
           transition={{ delay: 1.5 }}
+          data-testid="scroll-indicator"
         >
           <motion.a
             href="#features"
-            className="flex flex-col items-center gap-2 text-xs text-muted-foreground hover:text-foreground transition-colors"
-            animate={{ y: [0, 8, 0] }}
-            transition={{ duration: 2, repeat: Infinity, ease: "easeInOut" }}
+            className="pointer-events-auto group relative flex flex-col items-center gap-2"
+            whileHover={{ scale: 1.05 }}
           >
-            <span className="font-medium">Scroll to explore</span>
+            {/* Orbit dots */}
             <motion.div
-              className="h-8 w-5 rounded-full border-2 border-current flex items-start justify-center p-1"
-              whileHover={{ scale: 1.1 }}
+              className="relative grid h-14 w-14 place-items-center"
+              animate={{ rotate: 360 }}
+              transition={{ duration: 9, repeat: Infinity, ease: "linear" }}
             >
-              <motion.div
-                className="h-1.5 w-1.5 rounded-full bg-current"
-                animate={{ y: [0, 12, 0] }}
-                transition={{ duration: 1.5, repeat: Infinity, ease: "easeInOut" }}
+              {[0, 1, 2].map((i) => (
+                <span
+                  key={i}
+                  className="absolute h-1.5 w-1.5 rounded-full bg-primary-600/70"
+                  style={{
+                    transform: `rotate(${i * 120}deg) translateY(-22px)`,
+                  }}
+                />
+              ))}
+              {/* Center pulse */}
+              <motion.span
+                className="absolute h-8 w-8 rounded-full border border-primary-500/40"
+                animate={{ scale: [1, 1.4, 1], opacity: [0.8, 0, 0.8] }}
+                transition={{ duration: 2, repeat: Infinity, ease: "easeOut" }}
+              />
+              <motion.span
+                className="absolute h-3 w-3 rounded-full bg-gradient-to-br from-primary-600 to-accent2 shadow-md shadow-primary-600/50"
+                animate={{ scale: [1, 0.85, 1] }}
+                transition={{ duration: 1.6, repeat: Infinity, ease: "easeInOut" }}
               />
             </motion.div>
+            <span className="font-display text-[11px] font-semibold uppercase tracking-[0.22em] text-muted-foreground transition-colors group-hover:text-primary-700">
+              Scroll to explore
+            </span>
           </motion.a>
         </motion.div>
       </section>
@@ -426,12 +529,12 @@ function LandingPage() {
                 whileHover={{ y: -8, scale: 1.02 }}
                 className="group card-surface relative overflow-hidden p-7 cursor-pointer"
               >
-                <motion.div 
+                <motion.div
                   className="absolute -top-12 -right-12 h-32 w-32 rounded-full bg-gradient-to-br from-primary-200/40 to-transparent blur-2xl transition-opacity group-hover:opacity-100 opacity-40"
                   whileHover={{ scale: 1.3 }}
                 />
                 <div className="relative">
-                  <motion.div 
+                  <motion.div
                     className="mb-5 inline-flex h-12 w-12 items-center justify-center rounded-2xl bg-gradient-to-br from-primary-600 to-primary-800 text-white shadow-md shadow-primary-600/25"
                     whileHover={{ rotate: [0, -10, 10, -10, 0], scale: 1.1 }}
                     transition={{ duration: 0.5 }}
@@ -441,8 +544,6 @@ function LandingPage() {
                   <h3 className="font-display text-xl group-hover:text-primary-700 transition-colors">{f.title}</h3>
                   <p className="mt-2 text-sm leading-relaxed text-muted-foreground">{f.body}</p>
                 </div>
-                
-                {/* Animated border on hover */}
                 <motion.div
                   className="absolute inset-0 rounded-[1.25rem] border-2 border-primary-500/0 group-hover:border-primary-500/20"
                   transition={{ duration: 0.3 }}
@@ -462,19 +563,11 @@ function LandingPage() {
             viewport={{ once: true }}
             className="card-glass relative overflow-hidden p-10 md:p-14"
           >
-            {/* Animated background gradient */}
             <div className="pointer-events-none absolute inset-0 opacity-10">
               <motion.div
                 className="absolute top-0 right-0 h-64 w-64 rounded-full bg-gradient-to-br from-primary-400 to-accent2 blur-3xl"
-                animate={{
-                  scale: [1, 1.2, 1],
-                  opacity: [0.3, 0.6, 0.3],
-                }}
-                transition={{
-                  duration: 5,
-                  repeat: Infinity,
-                  ease: "easeInOut"
-                }}
+                animate={{ scale: [1, 1.2, 1], opacity: [0.3, 0.6, 0.3] }}
+                transition={{ duration: 5, repeat: Infinity, ease: "easeInOut" }}
               />
             </div>
 
@@ -493,8 +586,8 @@ function LandingPage() {
                 </p>
                 <ul className="mt-7 space-y-3 text-sm">
                   {["Create → Preprocess → Associate", "Adjust → QA → Deliver", "Branch and assign without leaving the board"].map((t, i) => (
-                    <motion.li 
-                      key={t} 
+                    <motion.li
+                      key={t}
                       className="flex items-center gap-2.5"
                       initial={{ opacity: 0, x: -20 }}
                       whileInView={{ opacity: 1, x: 0 }}
@@ -523,7 +616,7 @@ function LandingPage() {
                         {stage}
                       </motion.div>
                       {i < arr.length - 1 && (
-                        <motion.span 
+                        <motion.span
                           className="text-muted-foreground/60"
                           initial={{ opacity: 0 }}
                           whileInView={{ opacity: 1 }}
@@ -553,41 +646,24 @@ function LandingPage() {
             className="relative overflow-hidden rounded-3xl bg-gradient-to-br from-primary-700 via-primary-600 to-primary-800 p-14 text-center shadow-2xl shadow-primary-700/30 animate-gradient"
           >
             <div className="pointer-events-none absolute inset-0 opacity-30">
-              <motion.div 
+              <motion.div
                 className="absolute top-0 right-1/4 h-72 w-72 rounded-full bg-accent2/30 blur-[100px]"
-                animate={{
-                  x: [0, 50, 0],
-                  y: [0, 30, 0],
-                }}
-                transition={{
-                  duration: 8,
-                  repeat: Infinity,
-                  ease: "easeInOut"
-                }}
+                animate={{ x: [0, 50, 0], y: [0, 30, 0] }}
+                transition={{ duration: 8, repeat: Infinity, ease: "easeInOut" }}
               />
-              <motion.div 
+              <motion.div
                 className="absolute bottom-0 left-1/4 h-72 w-72 rounded-full bg-primary-300/40 blur-[100px]"
-                animate={{
-                  x: [0, -40, 0],
-                  y: [0, -20, 0],
-                }}
-                transition={{
-                  duration: 10,
-                  repeat: Infinity,
-                  ease: "easeInOut"
-                }}
+                animate={{ x: [0, -40, 0], y: [0, -20, 0] }}
+                transition={{ duration: 10, repeat: Infinity, ease: "easeInOut" }}
               />
             </div>
 
             <div className="relative">
-              <motion.div
-                animate={{ rotate: 360 }}
-                transition={{ duration: 20, repeat: Infinity, ease: "linear" }}
-              >
+              <motion.div animate={{ rotate: 360 }} transition={{ duration: 20, repeat: Infinity, ease: "linear" }}>
                 <Sparkles className="mx-auto mb-5 h-12 w-12 text-white/80" />
               </motion.div>
-              
-              <motion.h2 
+
+              <motion.h2
                 className="font-display text-3xl text-white md:text-5xl"
                 initial={{ opacity: 0, y: 20 }}
                 whileInView={{ opacity: 1, y: 0 }}
@@ -595,8 +671,8 @@ function LandingPage() {
               >
                 Ready to ship faster?
               </motion.h2>
-              
-              <motion.p 
+
+              <motion.p
                 className="mt-3 text-primary-50/85"
                 initial={{ opacity: 0 }}
                 whileInView={{ opacity: 1 }}
@@ -619,16 +695,13 @@ function LandingPage() {
                 >
                   <Rocket className="h-4 w-4" />
                   Get Started
-                  <motion.div
-                    animate={{ x: [0, 5, 0] }}
-                    transition={{ duration: 1.5, repeat: Infinity }}
-                  >
+                  <motion.div animate={{ x: [0, 5, 0] }} transition={{ duration: 1.5, repeat: Infinity }}>
                     <ArrowRight className="h-4 w-4" />
                   </motion.div>
                 </Link>
               </motion.div>
 
-              <motion.div 
+              <motion.div
                 className="mt-7 flex flex-wrap items-center justify-center gap-x-6 gap-y-2 text-xs text-primary-50/75"
                 initial={{ opacity: 0 }}
                 whileInView={{ opacity: 1 }}
@@ -638,9 +711,9 @@ function LandingPage() {
                 {[
                   { icon: CheckCircle2, text: "14-day trial" },
                   { icon: CheckCircle2, text: "No setup fees" },
-                  { icon: CheckCircle2, text: "Cancel anytime" }
+                  { icon: CheckCircle2, text: "Cancel anytime" },
                 ].map((item, i) => (
-                  <motion.span 
+                  <motion.span
                     key={i}
                     className="inline-flex items-center gap-1.5"
                     initial={{ opacity: 0, x: -10 }}
@@ -658,7 +731,7 @@ function LandingPage() {
       </section>
 
       <footer className="border-t border-border/60 bg-background/60 px-6 py-8 backdrop-blur">
-        <motion.div 
+        <motion.div
           className="mx-auto flex max-w-7xl flex-col items-center justify-between gap-3 md:flex-row"
           initial={{ opacity: 0, y: 20 }}
           whileInView={{ opacity: 1, y: 0 }}
@@ -666,7 +739,7 @@ function LandingPage() {
           transition={{ duration: 0.6 }}
         >
           <div className="flex items-center gap-2.5">
-            <motion.div 
+            <motion.div
               className="grid h-8 w-8 place-items-center rounded-xl bg-gradient-to-br from-primary-600 to-primary-800 font-display text-xs font-semibold text-white"
               whileHover={{ rotate: 360, scale: 1.1 }}
               transition={{ duration: 0.6 }}

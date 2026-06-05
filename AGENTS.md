@@ -240,12 +240,78 @@ These are the human owner's exact answers to setup questions. Treat as binding.
 
 ## 11. Changelog (append at the top of the list)
 
+- **2026-01 — `fix/board-task-position-collision`** (refs **issue #6 — CORE LOGIC**, part 1/N):
+  End-to-end audit of the core Kanban workflow. Found and fixed a position-collision
+  bug: `KanbanBoard.addTask` used `tasks.filter(col).length` to assign the new card's
+  `position`, but mid-column deletes never reindex positions on the backend (only in
+  frontend state). With no `UNIQUE(column_id, position)` constraint in Supabase, this
+  silently produced duplicate positions and unstable card order after refetch. New
+  cards now use `max(position) + 1` of the column, which is collision-proof regardless
+  of backend gaps. Diff = 1 file, ~8 LoC. See § 13 for remaining issue-#6 follow-ups.
 - **2026-01 — `feat/board-quick-filter`**: Added a quick search/filter input above the
   Kanban columns. Filters cards by title / description / process_stage in real time,
   shows `X of Y` count, clears on Esc. Self-contained in `KanbanBoard.tsx`.
 - **2026-01 — `docs/agents-handover-guide`**: Added this `AGENTS.md` so future agents
   have a single, accurate handover doc (README is outdated, EMERGENT_HANDOVER.md is
   Emergent-specific).
+
+---
+
+## 13. Core-logic audit findings (issue #6) — remaining follow-up PRs
+
+This section tracks the end-to-end audit done against **issue #6 "CORE LOGIC"**.
+Each item below is sized to fit a single small PR so a future agent doesn't exhaust
+its credit budget mid-feature. Pick them off one at a time, top → bottom.
+
+### 13.1 ✅ DONE — `fix/board-task-position-collision`
+Use `max(position)+1` when adding a card. Shipped (see § 11).
+
+### 13.2 TODO — `fix/board-reindex-positions-on-delete`
+**Symptom:** Deleting a task from `TaskDetailsDrawer` (or via `KanbanBoard.removeTask`)
+reindexes positions in React state only; the remaining tasks in that column keep their
+old `position` values in Supabase, leaving gaps. § 13.1 patched the *symptom* for new
+inserts; this PR fixes the *root cause* by persisting the reindexed positions back to
+Supabase in a single `update` round-trip (same pattern as `persistTaskOrder` in
+`KanbanBoard.tsx`). Files: `KanbanBoard.tsx` (`removeTask`), and optionally pass an
+`onAfterDelete` callback from `TaskDetailsDrawer` so the parent can persist.
+
+### 13.3 TODO — `fix/board-stale-snapshot-ref-on-add`
+**Symptom:** In `KanbanBoard.addTask` / `removeTask`, `dragSnapshotRef.current` is
+built from the closure-captured `tasks`, not from the updater's `prev`. With React 19
+auto-batching this can briefly desync the drag snapshot if a drag starts within the
+same tick. Fix: build the next snapshot inside the `setTasks(prev => ...)` updater (or
+inside a `useEffect` that mirrors state into the ref) so the ref is always consistent.
+
+### 13.4 TODO — `feat/board-realtime-sync`
+**Gap:** Two users on the same board don't see each other's drags/edits until refresh.
+Supabase Realtime channel on `tasks` / `board_columns` filtered by `board_id` would
+close this. Keep the patch isolated to a `useBoardRealtime(boardId)` hook called from
+`/_authenticated/board.tsx`. Skip optimistic conflict resolution (out of scope).
+
+### 13.5 TODO — `fix/board-add-card-optimistic`
+**Symptom:** Adding a card awaits the round-trip before the card appears → feels slow.
+Insert an optimistic placeholder card immediately, then reconcile with the server row
+(or roll back on error). Reuse the same pattern already used for drag persistence.
+
+### 13.6 TODO — `fix/auth-callback-redirect-loop`
+**To verify:** `routes/auth.callback.tsx` exchanges the PKCE code and redirects. The
+`_authenticated` guard reads from `auth-store`. If the store isn't hydrated before the
+guard runs, the user briefly bounces back to `/login`. Audit the hydration timing and
+add a "loading" state to the guard if needed. (Read-only inspection task before any
+code change.)
+
+### 13.7 TODO — `chore/remove-stale-fastapi-backend`
+**Cleanup:** The `backend/` folder (FastAPI + MongoDB stub) is unused at runtime and
+actively misleads code-review tools (see `CODE_REVIEW_TOOL_ISSUE.md`). One PR to
+delete the folder + update `README.md` to match reality (TanStack Start + Supabase).
+Touch *only* `backend/**` and `README.md`.
+
+### How the next agent should approach this list
+1. Pull `main`, pick the **first unchecked** item.
+2. Branch with the suggested name; keep the diff to the files listed.
+3. Commit, push, open PR with `Refs #6 — part X/N` in the body, squash-merge, delete branch.
+4. Tick the item here (move it under § 11 Changelog with the merged commit).
+5. Stop. Let the human review before starting the next.
 
 ---
 

@@ -144,7 +144,13 @@ export function KanbanBoard({ boardId, userId, columns, tasks: initialTasks, onC
     const title = newTitle.trim();
     if (!title) return;
 
-    const position = tasks.filter((task) => task.column_id === columnId).length;
+    // Compute next position from the current MAX in the column (not count).
+    // This is collision-proof even when previous deletes left gaps in the
+    // position sequence on the backend (deletes only reindex frontend state).
+    const columnTasks = tasks.filter((task) => task.column_id === columnId);
+    const position = columnTasks.length
+      ? Math.max(...columnTasks.map((task) => task.position)) + 1
+      : 0;
     const { data, error } = await supabase
       .from("tasks")
       .insert({

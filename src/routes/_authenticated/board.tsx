@@ -5,6 +5,7 @@ import { CalendarClock, Layers3, Loader2, Pencil, Plus, Save, X } from "lucide-r
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { KanbanBoard } from "@/components/kanban/KanbanBoard";
+import { BoardProductivityMetrics } from "@/components/board/BoardProductivityMetrics";
 import { useAuth } from "@/lib/auth-store";
 import { buildSeedTasks, type ColumnRecord, type TaskRecord } from "@/lib/task-model";
 
@@ -197,6 +198,7 @@ function BoardPage() {
           />
         )}
       </div>
+      <BoardProductivityMetrics tasks={tasks ?? []} />
       <KanbanBoard
         boardId={boardId}
         userId={user!.id}

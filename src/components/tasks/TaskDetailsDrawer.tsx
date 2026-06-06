@@ -2,13 +2,15 @@ import { useEffect, useMemo, useState } from "react";
 import { CalendarDays, Save, Trash2 } from "lucide-react";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
+// Issue #22 item 2: surface task details as a centered modal instead of a
+// right-side sheet so it reads more like Jira's task detail view.
 import {
-  Sheet,
-  SheetContent,
-  SheetDescription,
-  SheetHeader,
-  SheetTitle,
-} from "@/components/ui/sheet";
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
 import {
   priorityClass,
   type ColumnRecord,
@@ -165,18 +167,21 @@ export function TaskDetailsDrawer({
   };
 
   return (
-    <Sheet open={open} onOpenChange={handleOpenChange}>
-      <SheetContent side="right" className="w-full overflow-y-auto sm:max-w-xl">
+    <Dialog open={open} onOpenChange={handleOpenChange}>
+      <DialogContent
+        data-testid="task-details-modal"
+        className="max-h-[85vh] w-[min(96vw,40rem)] max-w-[40rem] overflow-y-auto"
+      >
         {draft ? (
           <div className="space-y-6">
-            <SheetHeader>
+            <DialogHeader>
               <div className="flex items-start justify-between gap-4 pr-8">
                 <div className="space-y-2">
-                  <SheetTitle>Task details</SheetTitle>
-                  <SheetDescription>
+                  <DialogTitle>Task details</DialogTitle>
+                  <DialogDescription>
                     Edit fields below and press <strong>Save task</strong> to persist your
                     changes.
-                  </SheetDescription>
+                  </DialogDescription>
                 </div>
                 <div
                   className={`inline-flex items-center gap-2 rounded-full border px-3 py-1 text-xs ${
@@ -190,7 +195,7 @@ export function TaskDetailsDrawer({
                   {saving ? "Saving…" : isDirty ? "Unsaved changes" : "All changes saved"}
                 </div>
               </div>
-            </SheetHeader>
+            </DialogHeader>
 
             <div className="space-y-4">
               <label className="block space-y-1.5">
@@ -344,8 +349,8 @@ export function TaskDetailsDrawer({
             </div>
           </div>
         ) : null}
-      </SheetContent>
-    </Sheet>
+      </DialogContent>
+    </Dialog>
   );
 }
 

@@ -588,11 +588,6 @@ function TaskCard({
 
   return (
     <motion.div
-      layout="position"
-      layoutId={`task-${task.id}`}
-      transition={{
-        layout: { duration: 0.2, ease: [0.25, 1, 0.5, 1] }
-      }}
       onClick={editing ? undefined : onOpen}
       className={`group rounded-xl border bg-card p-3.5 shadow-sm transition-all duration-150 ${onOpen && !editing ? "cursor-pointer" : ""} ${selected ? "border-primary-500 ring-2 ring-primary-500/25 shadow-md" : "border-border"} ${dragging ? "rotate-2 scale-105 shadow-2xl ring-2 ring-primary-500/50" : "hover:border-primary-400 hover:shadow-md hover:scale-[1.01]"}`}
     >

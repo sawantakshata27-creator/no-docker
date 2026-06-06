@@ -240,6 +240,14 @@ These are the human owner's exact answers to setup questions. Treat as binding.
 
 ## 11. Changelog (append at the top of the list)
 
+- **2026-01 — `docs/agents-mark-status-dropdown-slice-done`** (refs **issue #11 — Tasks**,
+  closes § 14.5): Marked the Status-dropdown slice as ✅ DONE in § 14.5 and recorded the
+  three slices that closed it (PR #23 `Backlog → New Task`, PR #26 add `Error` column,
+  PR #28 `In Review → On Hold`). Documented why the Task drawer Status select needed no
+  code change (it already reads options from `board_columns`, so renaming the rows
+  retargets the dropdown automatically) and the one deferred low-value question (`New
+  Task` vs literal `New`). Single-file docs change to `AGENTS.md`. No code, no schema.
+
 - **2026-01 — `feat/board-rename-in-review-to-on-hold`** (refs **issue #11 — Tasks**,
   part of § 14.5 Status-dropdown slice): Renamed the default `In Review` column to
   **`On Hold`** so the column set lines up with the owner's Status-dropdown spec from
@@ -419,26 +427,26 @@ Tracks the unfinished slices of issue #11's "Task Module Updates" sub-issue. Par
 ### 14.3 ✅ DONE — `feat/task-process-productivity-targets` (PR #18)
 ### 14.4 ✅ DONE — `feat/board-process-productivity-metrics` (PR #19)
 
-### 14.5 TODO — `feat/task-status-dropdown-and-board-columns`
-Owner's spec (issue #11, comment 1): the **Status** dropdown should expose
-**New, In Progress, On Hold, Error, Done** — but today the Task drawer's "Status" select
-is bound directly to the board's column list (`Backlog / In Progress / In Review / Done`)
-because status === column in this schema. This needs the Kanban-board overhaul from issue
-#11 comment 2 to land first (rename `Backlog → New Task`, add `Error` column, add `On Hold`
-column or treat it as a flag) — so this slice should be paired with **issue #8 — Kanban**
-work, not shipped standalone.
+### 14.5 ✅ DONE — `feat/task-status-dropdown-and-board-columns`
+Closed via three small slices (column names == status options in this schema, and the
+Task drawer Status select in `src/components/tasks/TaskDetailsDrawer.tsx` reads its
+options directly from `board_columns`, so renaming the rows automatically retargets the
+dropdown — no UI code change needed on the select itself):
 
-Suggested ordering for the next agent:
-1. First land the Kanban column rename + new columns (`Backlog → New Task`, add `Error`,
-   decide `On Hold` as column vs flag). That's a small DB migration in `supabase/` +
-   updating `DEFAULT_COLUMNS` in `src/routes/_authenticated/board.tsx` and the colours in
-   `KanbanBoard.tsx`.
-2. Then the Task drawer's Status select will reflect the new columns automatically.
-3. Update the `BoardProductivityMetrics` widget's "completed" definition if the new column
-   semantics require it (currently it relies on `completed_at`, which is unaffected).
+- ✅ PR #23 — `feat/board-rename-backlog-to-new-task` (`Backlog → New Task`)
+- ✅ PR #26 — `feat/board-add-error-column` (added `Error` between `In Review` and `Done`)
+- ✅ PR #28 — `feat/board-rename-in-review-to-on-hold` (`In Review → On Hold`)
 
-Out of scope of this handover: don't bundle the Kanban-board drag-perf fix
-(`Maximum update depth exceeded`) into the same PR — that's its own slice under issue #8.
+Default board column set is now `New Task → In Progress → On Hold → Error → Done` with the
+status-colour mapping from issue #8 (Grey / Blue / Amber / Red / Green).
+
+Deferred (low-value, not blocking — wait for owner steer): the leftmost column is literally
+`New Task` rather than plain `New` as listed in issue #11 comment 1. Kept the longer label
+since it doubles as the empty-board CTA copy. One-line rename in `DEFAULT_COLUMNS` +
+`onboarding.tsx` seed + a tiny SQL migration if the owner ever asks for it.
+
+Out of scope (separate issue #8 slice — don't bundle): the Kanban-board drag-perf fix
+(`Maximum update depth exceeded`).
 
 
 

@@ -12,7 +12,7 @@ export const Route = createFileRoute("/_authenticated/team")({ component: TeamPa
 type Member = {
   id: string;
   user_id: string;
-  role: "owner" | "admin" | "member";
+  role: "owner" | "admin" | "member" | "stakeholder";
   status: "active" | "pending";
   created_at: string;
 };
@@ -319,6 +319,7 @@ function TeamPage() {
                       >
                         <option value="admin">Admin</option>
                         <option value="member">Member</option>
+                    <option value="stakeholder">Stakeholder (read-only)</option>
                       </select>
                       <button
                         onClick={() => remove(m)}

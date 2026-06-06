@@ -264,7 +264,8 @@ export function KanbanBoard({ boardId, userId, columns, tasks: initialTasks, onC
     }
   };
 
-  const { org } = useAuth();
+  const { org, membership } = useAuth();
+  const isStakeholder = membership?.role === "stakeholder";
 
   // Fetch active org members to display assignee info on cards
   const { data: membersMap } = useQuery({

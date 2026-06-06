@@ -22,7 +22,7 @@ export interface Organization {
 export interface Membership {
   id: string;
   org_id: string;
-  role: "owner" | "admin" | "member";
+  role: "owner" | "admin" | "member" | "stakeholder";
   status: "active" | "pending";
 }
 

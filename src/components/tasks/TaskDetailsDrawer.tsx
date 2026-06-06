@@ -73,22 +73,25 @@ export function TaskDetailsDrawer({
   // `draft` is a local working copy. Edits no longer persist until the user
   // clicks "Save task". Closing/changing tasks discards unsaved edits.
   const [draft, setDraft] = useState<TaskRecord | null>(task);
+  // Tracks the last-known-saved editable snapshot. Updated when the drawer opens
+  // and again after a successful Save so we don't keep showing "Unsaved changes"
+  // or prompting to discard already-persisted edits (issue #22).
+  const [savedBaseline, setSavedBaseline] = useState<Partial<TaskRecord> | null>(
+    () => (task ? pickEditable(task) : null),
+  );
   const [saving, setSaving] = useState(false);
   const [deleting, setDeleting] = useState(false);
 
   useEffect(() => {
+    if (!open) return;
     setDraft(task);
+    setSavedBaseline(task ? pickEditable(task) : null);
   }, [task?.id, open]);
 
-  const baseline = useMemo<Partial<TaskRecord> | null>(
-    () => (task ? pickEditable(task) : null),
-    [task?.id, open],
-  );
-
   const dirtyPatch = useMemo<Partial<TaskRecord>>(() => {
-    if (!draft || !baseline) return {};
-    return diffPatch(baseline, pickEditable(draft));
-  }, [draft, baseline]);
+    if (!draft || !savedBaseline) return {};
+    return diffPatch(savedBaseline, pickEditable(draft));
+  }, [draft, savedBaseline]);
 
   const isDirty = Object.keys(dirtyPatch).length > 0;
 
@@ -127,6 +130,7 @@ export function TaskDetailsDrawer({
       // Bubble the patch up so the board/list reflects the new values without
       // waiting for a refetch.
       onTaskPatched(task.id, dirtyPatch);
+      setSavedBaseline(pickEditable(draft));
       toast.success("Task saved");
     } catch (error: any) {
       toast.error(error?.message || "Failed to save task");

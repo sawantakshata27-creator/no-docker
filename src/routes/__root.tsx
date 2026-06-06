@@ -21,7 +21,7 @@ function NotFoundComponent() {
         <h1 className="text-7xl font-bold text-primary-600">404</h1>
         <h2 className="mt-4 text-xl font-semibold">Page not found</h2>
         <p className="mt-2 text-sm text-muted-foreground">The page you're looking for doesn't exist.</p>
-        <Link to="/" className="btn-primary mt-6 inline-flex">Go home</Link>
+        <Link to="/login" className="btn-primary mt-6 inline-flex">Go to login</Link>
       </div>
     </div>
   );

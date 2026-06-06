@@ -240,6 +240,15 @@ These are the human owner's exact answers to setup questions. Treat as binding.
 
 ## 11. Changelog (append at the top of the list)
 
+- **2026-01 — `chore/delete-landing-page`** (closes **issue #12 — Delete landing page**,
+  PR #15): Removed the 757-LoC marketing landing page that lived at `/`. The route is
+  now a thin redirect: signed-in users → `/dashboard`, everyone else → `/login`. Also
+  removed the now-dangling **"← Back to home"** link inside the login card, the
+  `<Link to="/">` wrapper around the login cover-panel logo, and pointed the 404 page's
+  primary CTA at `/login`. No new deps, no DB changes. Diff = 3 files, **+27 / −769**
+  LoC. `npx tsc --noEmit` and `yarn lint` baselines unchanged on this PR's files (the
+  60-error lint drop is purely from deleting landing-page code).
+
 - **2026-01 — `feat/task-manual-save-delete`** (refs **issue #11 — Tasks**, part 2/N of the
   "Task Module Updates" sub-issue): Removed the autosave behaviour from `TaskDetailsDrawer`.
   All edits now live in a local `draft` until the user clicks **Save task**. Added an

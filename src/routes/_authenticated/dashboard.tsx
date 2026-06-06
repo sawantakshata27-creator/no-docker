@@ -99,7 +99,7 @@ function Dashboard() {
   const status = [
     { name: "Done", value: done, color: "#10b981" },
     { name: "In Progress", value: inProgress, color: "#3b82f6" },
-    { name: "Backlog", value: Math.max(0, total - done - inProgress), color: "#94a3b8" },
+    { name: "New Task", value: Math.max(0, total - done - inProgress), color: "#94a3b8" },
   ];
 
   const copyOrgCode = async () => {

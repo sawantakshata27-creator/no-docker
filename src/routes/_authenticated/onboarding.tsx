@@ -66,13 +66,13 @@ function Onboarding() {
         if (bErr) throw bErr;
 
         const cols = [
-          { name: "Backlog", position: 0, color: "#94a3b8" },
+          { name: "New Task", position: 0, color: "#94a3b8" },
           { name: "In Progress", position: 1, color: "#3b82f6" },
           { name: "In Review", position: 2, color: "#f59e0b" },
           { name: "Done", position: 3, color: "#10b981" },
         ].map((c) => ({ ...c, board_id: board.id }));
         const { data: insertedCols } = await supabase.from("board_columns").insert(cols).select();
-        const backlog = insertedCols!.find((c) => c.name === "Backlog")!;
+        const backlog = insertedCols!.find((c) => c.name === "New Task")!;
         const inProgress = insertedCols!.find((c) => c.name === "In Progress")!;
         await supabase.from("tasks").insert([
           { title: "Welcome to 2DS Workflow", description: "Drag this card to another column.", column_id: backlog.id, position: 0, priority: "high", process_stage: "Sign Creation", board_id: board.id, created_by: user.id },

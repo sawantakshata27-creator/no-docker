@@ -1,9 +1,9 @@
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/lib/auth-store";
-import { Copy, Check, UserPlus, Crown, Shield, User, X, Loader2, Users, Link2, PlusCircle } from "lucide-react";
+import { Copy, Check, UserPlus, Crown, Shield, User, X, Loader2, Users, Link2, PlusCircle, BarChart2 } from "lucide-react";
 import { toast } from "sonner";
 import { UserAvatar } from "@/components/ui/UserAvatar";
 
@@ -21,6 +21,7 @@ function TeamPage() {
   const { org, membership, user } = useAuth();
   const navigate = useNavigate();
   const qc = useQueryClient();
+  const [activeTab, setActiveTab] = useState<"members" | "workload">("members");
   const [copied, setCopied] = useState(false);
   const [joiningAnother, setJoiningAnother] = useState(false);
   const [joinCode, setJoinCode] = useState("");
@@ -53,6 +54,45 @@ function TeamPage() {
       return m;
     },
   });
+
+  // Workload: tasks assigned to each member
+  const { data: tasks } = useQuery({
+    queryKey: ["workload-tasks", org?.id],
+    enabled: !!org,
+    queryFn: async () => {
+      const { data } = await supabase
+        .from("tasks")
+        .select("id, assignee_id, process_stage, board_columns(name), boards!inner(org_id)")
+        .eq("boards.org_id", org!.id)
+        .neq("board_columns.name", "Done");
+      return (data ?? []) as any[];
+    },
+  });
+
+  const workload = useMemo(() => {
+    if (!tasks || !members || !profiles) return [];
+    const CAPACITY = 10; // configurable daily capacity
+    return members
+      .filter((m) => m.status === "active")
+      .map((m) => {
+        const memberTasks = tasks.filter((t: any) => t.assignee_id === m.user_id);
+        const p = profiles?.[m.user_id];
+        const byStage: Record<string, number> = {};
+        memberTasks.forEach((t: any) => {
+          const s = t.process_stage ?? "Unspecified";
+          byStage[s] = (byStage[s] ?? 0) + 1;
+        });
+        return {
+          user_id: m.user_id,
+          name: p?.full_name ?? p?.email ?? "Unknown",
+          avatar_url: p?.avatar_url,
+          count: memberTasks.length,
+          byStage,
+          pct: Math.min(100, Math.round(memberTasks.length / CAPACITY * 100)),
+        };
+      })
+      .sort((a, b) => b.count - a.count);
+  }, [tasks, members, profiles]);
 
   const canManage = membership?.role === "owner" || membership?.role === "admin";
 
@@ -336,6 +376,9 @@ function TeamPage() {
           </ul>
         )}
       </div>
+    </div>
+      </div>
+      )}
     </div>
   );
 }

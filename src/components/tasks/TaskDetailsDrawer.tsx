@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useAuth } from "@/lib/auth-store";
-import { CalendarDays, Hash, MessageSquare, Save, Send, Trash2, UserCircle2 } from "lucide-react";
+import { CalendarDays, ExternalLink, Hash, MessageSquare, Paperclip, Save, Send, Trash2, Upload, UserCircle2 } from "lucide-react";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 // Issue #22 item 2: surface task details as a centered modal instead of a
@@ -567,6 +567,146 @@ function TaskComments({ taskId }: { taskId: string }) {
           <Send className="h-4 w-4" />
         </button>
       </form>
+    </div>
+  );
+}
+
+// ── TaskAttachments ───────────────────────────────────────────────────────────
+
+type TaskAttachment = {
+  id: string;
+  task_id: string;
+  storage_path: string;
+  filename: string;
+  size: number;
+  uploaded_by: string | null;
+  created_at: string;
+  uploader_name?: string | null;
+};
+
+const ALLOWED_TYPES = [
+  "image/jpeg", "image/png", "image/gif", "image/webp", "image/svg+xml",
+  "application/pdf",
+  "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+  "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+  "application/vnd.openxmlformats-officedocument.presentationml.presentation",
+  "text/plain",
+];
+const MAX_MB = 20;
+
+function TaskAttachments({ taskId }: { taskId: string }) {
+  const { user } = useAuth();
+  const qc = useQueryClient();
+  const [uploading, setUploading] = useState(false);
+
+  const { data: attachments = [] } = useQuery({
+    queryKey: ["task-attachments", taskId],
+    queryFn: async () => {
+      const { data } = await supabase
+        .from("task_attachments")
+        .select("*, profiles(full_name, email)")
+        .eq("task_id", taskId)
+        .order("created_at", { ascending: false });
+      return (data ?? []).map((a: any) => ({
+        ...a,
+        uploader_name: a.profiles?.full_name || a.profiles?.email || null,
+      })) as TaskAttachment[];
+    },
+  });
+
+  const handleUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const files = Array.from(e.target.files ?? []);
+    if (!files.length || !user) return;
+
+    const oversized = files.filter((f) => f.size > MAX_MB * 1024 * 1024);
+    if (oversized.length) {
+      toast.error(`File too large — max ${MAX_MB} MB per file`);
+      e.target.value = "";
+      return;
+    }
+    const invalid = files.filter((f) => !ALLOWED_TYPES.includes(f.type));
+    if (invalid.length) {
+      toast.error("Unsupported file type");
+      e.target.value = "";
+      return;
+    }
+
+    setUploading(true);
+    try {
+      for (const file of files) {
+        const path = `${taskId}/${Date.now()}_${file.name}`;
+        const { error: uploadErr } = await supabase.storage
+          .from("task-attachments")
+          .upload(path, file, { upsert: false });
+        if (uploadErr) throw uploadErr;
+        await supabase.from("task_attachments").insert({
+          task_id: taskId,
+          storage_path: path,
+          filename: file.name,
+          size: file.size,
+          uploaded_by: user.id,
+        });
+      }
+      toast.success(`${files.length} file(s) attached`);
+      qc.invalidateQueries({ queryKey: ["task-attachments", taskId] });
+    } catch (err: any) {
+      toast.error(err?.message || "Upload failed");
+    } finally {
+      setUploading(false);
+      e.target.value = "";
+    }
+  };
+
+  const handleDelete = async (att: TaskAttachment) => {
+    if (!confirm(`Remove ${att.filename}?`)) return;
+    await supabase.storage.from("task-attachments").remove([att.storage_path]);
+    await supabase.from("task_attachments").delete().eq("id", att.id);
+    qc.invalidateQueries({ queryKey: ["task-attachments", taskId] });
+    toast.success("Attachment removed");
+  };
+
+  const getSignedUrl = async (path: string) => {
+    const { data } = await supabase.storage
+      .from("task-attachments")
+      .createSignedUrl(path, 3600);
+    if (data?.signedUrl) window.open(data.signedUrl, "_blank");
+  };
+
+  return (
+    <div className="border-t border-border px-6 py-4">
+      <div className="mb-3 flex items-center justify-between">
+        <div className="flex items-center gap-2 text-sm font-semibold">
+          <Paperclip className="h-4 w-4 text-muted-foreground" />
+          Attachments {attachments.length > 0 && <span className="text-xs font-normal text-muted-foreground">({attachments.length})</span>}
+        </div>
+        <label className="flex cursor-pointer items-center gap-1 rounded-lg px-2.5 py-1.5 text-xs font-medium text-muted-foreground transition hover:bg-primary-50 hover:text-primary-700">
+          <Upload className="h-3.5 w-3.5" />
+          {uploading ? "Uploading…" : "Attach"}
+          <input type="file" multiple accept=".pdf,.doc,.docx,.xls,.xlsx,.ppt,.pptx,.txt,.png,.jpg,.jpeg,.gif,.webp,.svg" className="hidden" disabled={uploading} onChange={handleUpload} />
+        </label>
+      </div>
+      {attachments.length === 0 ? (
+        <p className="py-2 text-center text-xs text-muted-foreground">No attachments yet</p>
+      ) : (
+        <div className="space-y-1.5">
+          {attachments.map((a) => (
+            <div key={a.id} className="group flex items-center gap-2 rounded-lg bg-muted/30 px-3 py-2 text-xs">
+              <Paperclip className="h-3.5 w-3.5 shrink-0 text-muted-foreground" />
+              <button onClick={() => getSignedUrl(a.storage_path)} className="flex-1 truncate text-left font-medium hover:text-primary-600 hover:underline">
+                {a.filename}
+              </button>
+              <ExternalLink className="h-3 w-3 shrink-0 text-muted-foreground" />
+              <span className="text-muted-foreground">{(a.size / 1024).toFixed(0)} KB</span>
+              {a.uploader_name && <span className="hidden truncate text-muted-foreground sm:block">· {a.uploader_name}</span>}
+              {(a.uploaded_by === user?.id) && (
+                <button onClick={() => handleDelete(a)} className="opacity-0 transition group-hover:opacity-100 hover:text-destructive">
+                  <Trash2 className="h-3 w-3" />
+                </button>
+              )}
+            </div>
+          ))}
+        </div>
+      )}
     </div>
   );
 }

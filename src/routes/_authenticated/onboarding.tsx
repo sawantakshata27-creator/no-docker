@@ -77,7 +77,7 @@ function Onboarding() {
         await supabase.from("tasks").insert([
           { title: "Welcome to 2DS Workflow", description: "Drag this card to another column.", column_id: backlog.id, position: 0, priority: "high", process_stage: "Sign Creation", board_id: board.id, created_by: user.id },
           { title: "Invite your team", description: `Share code ${code} from the Team page.`, column_id: backlog.id, position: 1, priority: "medium", process_stage: "Pre-processing", board_id: board.id, created_by: user.id },
-          { title: "Try the Documents page", description: "Write your first runbook.", column_id: inProgress.id, position: 0, priority: "low", process_stage: "QA", board_id: board.id, created_by: user.id },
+          { title: "Try the Documents page", description: "Write your first runbook.", column_id: inProgress.id, position: 0, priority: "low", process_stage: "Adjustment", board_id: board.id, created_by: user.id },
         ]);
       } else {
         // Join existing org by code → creates pending membership

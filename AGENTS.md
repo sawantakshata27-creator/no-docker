@@ -240,6 +240,15 @@ These are the human owner's exact answers to setup questions. Treat as binding.
 
 ## 11. Changelog (append at the top of the list)
 
+- **2026-01 — `feat/task-rename-process-and-trim-options`** (refs **issue #11 — Tasks**, part 1/N of the
+  "Task Module Updates" sub-issue): UI-only rename of the Task drawer "Process stage" field to
+  "Process", and trimmed the dropdown to the 4 stages we actually track for productivity metrics
+  (Sign Creation, Pre-processing, Association, Adjustment). Removed the "No stage" empty option
+  for tasks that already have a process assigned. Legacy values (e.g. "QA", "Delivery") still
+  render in the select if a task carries one, so no data is silently overwritten. Onboarding
+  seed updated to use "Adjustment" instead of the removed "QA" stage. No DB migration needed —
+  `tasks.process_stage` stays `text NULL`. Diff = 3 files, ~30 LoC.
+
 - **2026-01 — `fix/board-task-position-collision`** (refs **issue #6 — CORE LOGIC**, part 1/N):
   End-to-end audit of the core Kanban workflow. Found and fixed a position-collision
   bug: `KanbanBoard.addTask` used `tasks.filter(col).length` to assign the new card's

@@ -23,13 +23,16 @@ export type ColumnRecord = {
 
 export const PRIORITY_OPTIONS = ["high", "medium", "low"] as const;
 
+// Process options shown in the Task drawer. Trimmed from the legacy 6-stage list
+// to the 4 stages tracked for productivity metrics. Renamed in the UI from
+// "Process stage" → "Process" (see issue #11). "QA" and "Delivery" were removed
+// per the owner's spec; existing tasks with those values still render (just not
+// selectable going forward).
 export const DEFAULT_PROCESS_STAGES = [
   "Sign Creation",
   "Pre-processing",
   "Association",
   "Adjustment",
-  "QA",
-  "Delivery",
 ] as const;
 
 export function priorityClass(priority: string) {

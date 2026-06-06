@@ -240,6 +240,17 @@ These are the human owner's exact answers to setup questions. Treat as binding.
 
 ## 11. Changelog (append at the top of the list)
 
+- **2026-01 — `fix/board-reindex-positions-on-delete`** (refs **issue #6 — CORE LOGIC**,
+  also addresses **issue #8 — Kanban**, part 2/N): `KanbanBoard.removeTask` was
+  reindexing positions in React state only — Supabase still held the old `position`
+  values with a gap where the deleted card used to be. Combined with the (pre-#7)
+  collision-prone insert path, this produced unstable card order after refetch. The
+  delete handler now persists the reindexed positions for the affected column to
+  Supabase in a single round-trip (same `persistTaskOrder` pattern used by drag-end),
+  rolling back React state on error. Also wired `dragSnapshotRef.current` to the
+  reindexed list so an immediately-following drag doesn't snap back to a stale order.
+  Diff = 1 file (`KanbanBoard.tsx`), ~25 LoC. Ticks § 13.2.
+
 - **2026-01 — `feat/board-process-productivity-metrics`** (refs **issue #11 — Tasks**, part 3b/N
   of the "Task Module Updates" sub-issue, PR #19): Added a board-level **Process productivity**
   widget rendered above the Kanban. For each of the 4 tracked stages it shows files-per-hour
@@ -311,14 +322,8 @@ its credit budget mid-feature. Pick them off one at a time, top → bottom.
 ### 13.1 ✅ DONE — `fix/board-task-position-collision`
 Use `max(position)+1` when adding a card. Shipped (see § 11).
 
-### 13.2 TODO — `fix/board-reindex-positions-on-delete`
-**Symptom:** Deleting a task from `TaskDetailsDrawer` (or via `KanbanBoard.removeTask`)
-reindexes positions in React state only; the remaining tasks in that column keep their
-old `position` values in Supabase, leaving gaps. § 13.1 patched the *symptom* for new
-inserts; this PR fixes the *root cause* by persisting the reindexed positions back to
-Supabase in a single `update` round-trip (same pattern as `persistTaskOrder` in
-`KanbanBoard.tsx`). Files: `KanbanBoard.tsx` (`removeTask`), and optionally pass an
-`onAfterDelete` callback from `TaskDetailsDrawer` so the parent can persist.
+### 13.2 ✅ DONE — `fix/board-reindex-positions-on-delete`
+Persist reindexed positions to Supabase after a task delete. Shipped (see § 11).
 
 ### 13.3 TODO — `fix/board-stale-snapshot-ref-on-add`
 **Symptom:** In `KanbanBoard.addTask` / `removeTask`, `dragSnapshotRef.current` is

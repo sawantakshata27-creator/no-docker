@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from "react";
+import { useQuery } from "@tanstack/react-query";
 import {
   DndContext,
   DragOverlay,
@@ -22,7 +23,8 @@ import { motion } from "framer-motion";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { TaskDetailsDrawer } from "@/components/tasks/TaskDetailsDrawer";
-import { priorityClass, type ColumnRecord, type TaskRecord } from "@/lib/task-model";
+import { priorityClass, DEFAULT_PROCESS_STAGES, type ColumnRecord, type TaskRecord } from "@/lib/task-model";
+import { useAuth } from "@/lib/auth-store";
 
 interface Props {
   boardId: string;
@@ -262,6 +264,27 @@ export function KanbanBoard({ boardId, userId, columns, tasks: initialTasks, onC
     }
   };
 
+  const { org } = useAuth();
+
+  // Fetch active org members to display assignee info on cards
+  const { data: membersMap } = useQuery({
+    queryKey: ["org-members-kanban", org?.id],
+    enabled: !!org,
+    staleTime: 60_000,
+    queryFn: async () => {
+      const { data } = await supabase
+        .from("organization_members")
+        .select("user_id, profiles(id, full_name, email)")
+        .eq("org_id", org!.id)
+        .eq("status", "active");
+      const map: Record<string, string> = {};
+      (data ?? []).forEach((m: any) => {
+        map[m.profiles.id] = m.profiles.full_name || m.profiles.email || "?";
+      });
+      return map;
+    },
+  });
+
   const normalizedFilter = filterQuery.trim().toLowerCase();
   const matchesFilter = (task: TaskRecord) => {
     if (!normalizedFilter) return true;
@@ -341,6 +364,7 @@ export function KanbanBoard({ boardId, userId, columns, tasks: initialTasks, onC
                         task={task}
                         onOpen={() => setSelectedTaskId(task.id)}
                         selected={selectedTaskId === task.id}
+                        assigneeName={task.assignee_id ? (membersMap?.[task.assignee_id] ?? null) : null}
                       />
                     ))}
                     {items.length === 0 && normalizedFilter ? (
@@ -410,7 +434,7 @@ export function KanbanBoard({ boardId, userId, columns, tasks: initialTasks, onC
             easing: "cubic-bezier(0.25, 0.46, 0.45, 0.94)",
           }}
         >
-          {activeTask ? <TaskCard task={activeTask} dragging /> : null}
+          {activeTask ? <TaskCard task={activeTask} dragging assigneeName={activeTask.assignee_id ? (membersMap?.[activeTask.assignee_id] ?? null) : null} /> : null}
         </DragOverlay>
       </DndContext>
 
@@ -549,10 +573,12 @@ function SortableTaskCard({
   task,
   onOpen,
   selected,
+  assigneeName,
 }: {
   task: TaskRecord;
   onOpen: () => void;
   selected: boolean;
+  assigneeName?: string | null;
 }) {
   const {
     attributes,
@@ -581,6 +607,7 @@ function SortableTaskCard({
         task={task}
         selected={selected}
         onOpen={onOpen}
+        assigneeName={assigneeName}
         dragHandle={
           <button
             type="button"
@@ -599,18 +626,28 @@ function SortableTaskCard({
   );
 }
 
+// Process stage → left border color
+const STAGE_BORDER: Record<string, string> = {
+  "Sign Creation": "border-l-4 border-l-violet-500",
+  "Pre-processing": "border-l-4 border-l-blue-500",
+  "Association": "border-l-4 border-l-emerald-500",
+  "Adjustment": "border-l-4 border-l-amber-500",
+};
+
 function TaskCard({
   task,
   dragging = false,
   selected = false,
   onOpen,
   dragHandle,
+  assigneeName,
 }: {
   task: TaskRecord;
   dragging?: boolean;
   selected?: boolean;
   onOpen?: () => void;
   dragHandle?: React.ReactNode;
+  assigneeName?: string | null;
 }) {
   const [editing, setEditing] = useState(false);
   const [draft, setDraft] = useState(task.title);
@@ -628,7 +665,7 @@ function TaskCard({
   return (
     <motion.div
       onClick={editing ? undefined : onOpen}
-      className={`group rounded-xl border bg-card p-3.5 shadow-sm transition-all duration-150 ${onOpen && !editing ? "cursor-pointer" : ""} ${selected ? "border-primary-500 ring-2 ring-primary-500/25 shadow-md" : "border-border"} ${dragging ? "rotate-2 scale-105 shadow-2xl ring-2 ring-primary-500/50" : "hover:border-primary-400 hover:shadow-md hover:scale-[1.01]"}`}
+      className={`group rounded-xl border bg-card p-3.5 shadow-sm transition-all duration-150 ${STAGE_BORDER[task.process_stage ?? ""] ?? ""} ${onOpen && !editing ? "cursor-pointer" : ""} ${selected ? "border-primary-500 ring-2 ring-primary-500/25 shadow-md" : "border-border"} ${dragging ? "rotate-2 scale-105 shadow-2xl ring-2 ring-primary-500/50" : "hover:border-primary-400 hover:shadow-md hover:scale-[1.01]"}`}
     >
       <div className="flex items-start gap-2.5">
         {dragHandle ?? <span className="mt-0.5 h-6 w-6" />}
@@ -672,8 +709,13 @@ function TaskCard({
                 {task.process_stage}
               </span>
             ) : null}
+            {assigneeName ? (
+              <span className="ml-auto inline-flex h-5 w-5 items-center justify-center rounded-full bg-primary-100 text-[9px] font-bold text-primary-700 ring-1 ring-primary-200" title={assigneeName}>
+                {assigneeName.slice(0, 2).toUpperCase()}
+              </span>
+            ) : null}
             {task.due_date ? (
-              <span className="ml-auto inline-flex items-center gap-1.5 text-[10px] font-medium text-muted-foreground">
+              <span className="inline-flex items-center gap-1.5 text-[10px] font-medium text-muted-foreground">
                 <Calendar className="h-3 w-3" /> {new Date(task.due_date).toLocaleDateString()}
               </span>
             ) : null}

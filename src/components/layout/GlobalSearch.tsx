@@ -236,16 +236,25 @@ export function GlobalSearch() {
                     setSelected(0);
                   }}
                   onKeyDown={(e) => {
+                    // When the user has typed something, ↑/↓/Enter operate on
+                    // the live search results. When the query is empty, they
+                    // operate on the Recent searches list instead.
+                    const navItems =
+                      query.length === 0 ? recentSearches : results;
                     if (e.key === "ArrowDown") {
                       e.preventDefault();
-                      setSelected((s) => Math.min(s + 1, results.length - 1));
+                      setSelected((s) => Math.min(s + 1, navItems.length - 1));
                     }
                     if (e.key === "ArrowUp") {
                       e.preventDefault();
                       setSelected((s) => Math.max(s - 1, 0));
                     }
-                    if (e.key === "Enter" && results[selected]) {
-                      handleSelect(results[selected]);
+                    if (e.key === "Enter") {
+                      if (query.length === 0 && recentSearches[selected]) {
+                        handleRecentClick(recentSearches[selected]);
+                      } else if (results[selected]) {
+                        handleSelect(results[selected]);
+                      }
                     }
                   }}
                   placeholder="Search tasks, documents, boards..."
@@ -273,19 +282,36 @@ export function GlobalSearch() {
                           Clear
                         </button>
                       </div>
-                      {recentSearches.map((recent) => (
+                      {recentSearches.map((recent, index) => (
                         <button
                           key={recent}
                           type="button"
                           onClick={() => handleRecentClick(recent)}
-                          className="group flex w-full items-center gap-3 rounded-lg px-3 py-2.5 text-left transition hover:bg-muted"
+                          onMouseEnter={() => setSelected(index)}
+                          className={`group flex w-full items-center gap-3 rounded-lg px-3 py-2.5 text-left transition ${
+                            selected === index
+                              ? "bg-primary-50 text-primary-700"
+                              : "hover:bg-muted"
+                          }`}
                           data-testid={`recent-search-${recent}`}
                         >
-                          <div className="grid h-8 w-8 shrink-0 place-items-center rounded-lg bg-muted text-muted-foreground">
+                          <div
+                            className={`grid h-8 w-8 shrink-0 place-items-center rounded-lg ${
+                              selected === index
+                                ? "bg-primary-100 text-primary-700"
+                                : "bg-muted text-muted-foreground"
+                            }`}
+                          >
                             <Clock className="h-4 w-4" />
                           </div>
-                          <span className="flex-1 truncate text-sm text-foreground">{recent}</span>
-                          <ArrowRight className="h-4 w-4 text-muted-foreground opacity-0 transition group-hover:opacity-100" />
+                          <span className="flex-1 truncate text-sm">{recent}</span>
+                          <ArrowRight
+                            className={`h-4 w-4 transition ${
+                              selected === index
+                                ? "text-primary-600 opacity-100"
+                                : "text-muted-foreground opacity-0 group-hover:opacity-100"
+                            }`}
+                          />
                         </button>
                       ))}
                     </div>

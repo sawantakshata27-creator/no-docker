@@ -190,18 +190,32 @@ export function KanbanBoard({ boardId, userId, columns, tasks: initialTasks, onC
   };
 
   const removeTask = (taskId: string) => {
-    setTasks((prev) =>
-      reindexTasks(
-        prev.filter((task) => task.id !== taskId),
-        orderedColumns,
-      ),
-    );
-    dragSnapshotRef.current = reindexTasks(
+    // The task row is already deleted in Supabase by TaskDetailsDrawer.
+    // Here we reindex the remaining tasks (in React state) AND persist the
+    // new positions back to Supabase so the column doesn't keep stale
+    // `position` gaps after refetch. Without this, deletes left holes in the
+    // position sequence on the backend (see AGENTS.md § 13.2).
+    const deletedTask = tasks.find((task) => task.id === taskId);
+    const reindexed = reindexTasks(
       tasks.filter((task) => task.id !== taskId),
       orderedColumns,
     );
+
+    setTasks(reindexed);
+    dragSnapshotRef.current = reindexed;
     setSelectedTaskId((current) => (current === taskId ? null : current));
-    onChange();
+
+    const affectedColumnId = deletedTask?.column_id;
+    if (affectedColumnId) {
+      persistTaskOrder(reindexed, [affectedColumnId])
+        .then(() => onChange())
+        .catch((error: any) => {
+          toast.error(error?.message || "Failed to reindex tasks after delete");
+          onChange();
+        });
+    } else {
+      onChange();
+    }
   };
 
   const normalizedFilter = filterQuery.trim().toLowerCase();

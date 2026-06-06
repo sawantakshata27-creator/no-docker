@@ -366,6 +366,7 @@ export function KanbanBoard({ boardId, userId, columns, tasks: initialTasks, onC
                         onOpen={() => setSelectedTaskId(task.id)}
                         selected={selectedTaskId === task.id}
                         assigneeName={task.assignee_id ? (membersMap?.[task.assignee_id] ?? null) : null}
+                        isOverdue={!!(task.due_date && new Date(task.due_date) < new Date())}
                       />
                     ))}
                     {items.length === 0 && normalizedFilter ? (
@@ -575,11 +576,13 @@ function SortableTaskCard({
   onOpen,
   selected,
   assigneeName,
+  isOverdue,
 }: {
   task: TaskRecord;
   onOpen: () => void;
   selected: boolean;
   assigneeName?: string | null;
+  isOverdue?: boolean;
 }) {
   const {
     attributes,
@@ -609,6 +612,7 @@ function SortableTaskCard({
         selected={selected}
         onOpen={onOpen}
         assigneeName={assigneeName}
+        isOverdue={isOverdue}
         dragHandle={
           <button
             type="button"
@@ -642,6 +646,7 @@ function TaskCard({
   onOpen,
   dragHandle,
   assigneeName,
+  isOverdue: overdue = false,
 }: {
   task: TaskRecord;
   dragging?: boolean;
@@ -649,6 +654,7 @@ function TaskCard({
   onOpen?: () => void;
   dragHandle?: React.ReactNode;
   assigneeName?: string | null;
+  isOverdue?: boolean;
 }) {
   const [editing, setEditing] = useState(false);
   const [draft, setDraft] = useState(task.title);
@@ -666,7 +672,7 @@ function TaskCard({
   return (
     <motion.div
       onClick={editing ? undefined : onOpen}
-      className={`group rounded-xl border bg-card p-3.5 shadow-sm transition-all duration-150 ${STAGE_BORDER[task.process_stage ?? ""] ?? ""} ${onOpen && !editing ? "cursor-pointer" : ""} ${selected ? "border-primary-500 ring-2 ring-primary-500/25 shadow-md" : "border-border"} ${dragging ? "rotate-2 scale-105 shadow-2xl ring-2 ring-primary-500/50" : "hover:border-primary-400 hover:shadow-md hover:scale-[1.01]"}`}
+      className={`group rounded-xl border bg-card p-3.5 shadow-sm transition-all duration-150 ${STAGE_BORDER[task.process_stage ?? ""] ?? ""} ${overdue ? "ring-1 ring-red-400 bg-red-50/30" : ""} ${onOpen && !editing ? "cursor-pointer" : ""} ${selected ? "border-primary-500 ring-2 ring-primary-500/25 shadow-md" : "border-border"} ${dragging ? "rotate-2 scale-105 shadow-2xl ring-2 ring-primary-500/50" : "hover:border-primary-400 hover:shadow-md hover:scale-[1.01]"}`}
     >
       <div className="flex items-start gap-2.5">
         {dragHandle ?? <span className="mt-0.5 h-6 w-6" />}

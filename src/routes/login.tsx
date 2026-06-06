@@ -1,4 +1,4 @@
-import { createFileRoute, useNavigate, Link } from "@tanstack/react-router";
+import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { useState, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { z } from "zod";
@@ -17,7 +17,7 @@ export const Route = createFileRoute("/login")({
   component: LoginPage,
 });
 
-type Mode = "signin" | "signup" | "magic" | "forgot";
+type Mode = "signin" | "signup" | "forgot";
 
 function friendlyError(msg: string) {
   if (/invalid login credentials/i.test(msg)) return "Email or password is incorrect.";
@@ -67,13 +67,6 @@ function LoginPage() {
       } else if (mode === "signin") {
         const { error } = await supabase.auth.signInWithPassword({ email, password });
         if (error) throw error;
-      } else if (mode === "magic") {
-        const { error } = await supabase.auth.signInWithOtp({
-          email,
-          options: { emailRedirectTo: `${window.location.origin}/dashboard` },
-        });
-        if (error) throw error;
-        toast.success("Check your inbox for the sign-in link.");
       } else if (mode === "forgot") {
         const { error } = await supabase.auth.resetPasswordForEmail(email, {
           redirectTo: `${window.location.origin}/dashboard`,
@@ -191,7 +184,7 @@ function LoginPage() {
             }}
             className="mt-5 max-w-md text-[15px] leading-relaxed text-white/75"
           >
-            Track every sign through creation, preprocessing, association, adjustment, QA and
+            Track every sign through creation, preprocessing, association, adjustment and
             delivery — without leaving your board.
           </motion.p>
 
@@ -298,9 +291,7 @@ function LoginPage() {
           >
             {mode === "signup"
               ? "Create your account"
-              : mode === "magic"
-                ? "Magic link sign-in"
-                : mode === "forgot"
+              : mode === "forgot"
                   ? "Reset password"
                   : "Welcome back"}
           </motion.h1>
@@ -313,14 +304,12 @@ function LoginPage() {
           >
             {mode === "signup"
               ? "Start in under a minute."
-              : mode === "magic"
-                ? "We'll email you a one-tap sign-in link."
-                : mode === "forgot"
+              : mode === "forgot"
                   ? "We'll send a reset link to your email."
                   : "Sign in to your workspace."}
           </motion.p>
 
-          {mode !== "forgot" && mode !== "magic" && (
+          {mode !== "forgot" && (
             <button
               onClick={handleGoogle}
               disabled={loading}
@@ -349,7 +338,7 @@ function LoginPage() {
             </button>
           )}
 
-          {mode !== "forgot" && mode !== "magic" && (
+          {mode !== "forgot" && (
             <div className="my-5 flex items-center gap-3 text-[11px] tracking-wider text-muted-foreground/70 uppercase">
               <motion.div layout className="h-px flex-1 bg-border" /> or{" "}
               <motion.div layout className="h-px flex-1 bg-border" />
@@ -409,9 +398,7 @@ function LoginPage() {
               {loading && <Loader2 className="h-4 w-4 animate-spin" />}
               {mode === "signup"
                 ? "Create account"
-                : mode === "magic"
-                  ? "Send magic link"
-                  : mode === "forgot"
+                : mode === "forgot"
                     ? "Send reset link"
                     : "Sign in"}
             </button>
@@ -420,13 +407,10 @@ function LoginPage() {
           <div className="mt-6 flex flex-wrap items-center justify-between gap-2 text-xs text-muted-foreground">
             {mode === "signin" ? (
               <>
-                <button onClick={() => setMode("magic")} className="hover:text-primary-700">
-                  Use magic link
-                </button>
-                <button onClick={() => setMode("forgot")} className="hover:text-primary-700">
+                <button onClick={() => setMode("forgot")} className="hover:text-primary-700" data-testid="login-forgot-link">
                   Forgot password?
                 </button>
-                <button onClick={() => setMode("signup")} className="hover:text-primary-700">
+                <button onClick={() => setMode("signup")} className="hover:text-primary-700" data-testid="login-create-account-link">
                   Create account
                 </button>
               </>
@@ -434,6 +418,7 @@ function LoginPage() {
               <button
                 onClick={() => setMode("signin")}
                 className="inline-flex items-center gap-1 hover:text-primary-700"
+                data-testid="login-back-to-signin-link"
               >
                 <ArrowLeft className="h-3 w-3" /> Back to sign in
               </button>

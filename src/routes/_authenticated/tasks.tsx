@@ -3,9 +3,10 @@ import { useMemo, useState } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/lib/auth-store";
-import { Search, Loader2, ArrowUpDown, Pencil } from "lucide-react";
+import { Search, Loader2, ArrowUpDown, Pencil, Plus, X } from "lucide-react";
+import { toast } from "sonner";
 import { TaskDetailsDrawer } from "@/components/tasks/TaskDetailsDrawer";
-import { type TaskRecord, type ColumnRecord } from "@/lib/task-model";
+import { type TaskRecord, type ColumnRecord, PRIORITY_OPTIONS } from "@/lib/task-model";
 
 export const Route = createFileRoute("/_authenticated/tasks")({ component: TasksPage });
 
@@ -19,6 +20,14 @@ function TasksPage() {
   const [selectedTaskId, setSelectedTaskId] = useState<string | null>(null);
   const [editingTaskId, setEditingTaskId] = useState<string | null>(null);
   const [editingTitle, setEditingTitle] = useState("");
+  // Inline "Add task" form state. The Tasks page previously had no way to
+  // create a task — users had to go to the Board page. Issue #11 item 1.
+  const [adding, setAdding] = useState(false);
+  const [newTitle, setNewTitle] = useState("");
+  const [newBoardId, setNewBoardId] = useState<string>("");
+  const [newColumnId, setNewColumnId] = useState<string>("");
+  const [newPriority, setNewPriority] = useState<string>("medium");
+  const [creating, setCreating] = useState(false);
   // local optimistic overlay
   const [patches, setPatches] = useState<Record<string, Partial<TaskRecord>>>({});
   const [deleted, setDeleted] = useState<Set<string>>(new Set());
@@ -147,18 +156,216 @@ function TasksPage() {
     setEditingTitle("");
   };
 
+  const openAdd = () => {
+    const firstBoardId = boardsAndCols?.boards[0]?.id ?? "";
+    const firstColumnForBoard = (boardsAndCols?.cols ?? [])
+      .filter((c: any) => c.board_id === firstBoardId)
+      .sort((a, b) => a.position - b.position)[0]?.id ?? "";
+    setNewTitle("");
+    setNewBoardId(firstBoardId);
+    setNewColumnId(firstColumnForBoard);
+    setNewPriority("medium");
+    setAdding(true);
+  };
+
+  const closeAdd = () => {
+    setAdding(false);
+    setNewTitle("");
+  };
+
+  // When the user switches boards in the Add form, default the column to the
+  // first column of the newly selected board so we never submit a column from
+  // a different board.
+  const handleBoardChange = (boardId: string) => {
+    setNewBoardId(boardId);
+    const firstCol = (boardsAndCols?.cols ?? [])
+      .filter((c: any) => c.board_id === boardId)
+      .sort((a, b) => a.position - b.position)[0]?.id ?? "";
+    setNewColumnId(firstCol);
+  };
+
+  const handleCreateTask = async () => {
+    const title = newTitle.trim();
+    if (!title) {
+      toast.error("Task title is required");
+      return;
+    }
+    if (!newBoardId || !newColumnId || !user) {
+      toast.error("Pick a board and a status before saving");
+      return;
+    }
+    setCreating(true);
+    try {
+      // Use max(position)+1 in the chosen column to avoid colliding with
+      // existing tasks (same pattern as KanbanBoard.addTask).
+      const colTasks = (rawTasks ?? []).filter((t) => t.column_id === newColumnId);
+      const position = colTasks.length
+        ? Math.max(...colTasks.map((t) => t.position)) + 1
+        : 0;
+
+      const { data, error } = await supabase
+        .from("tasks")
+        .insert({
+          title,
+          board_id: newBoardId,
+          column_id: newColumnId,
+          created_by: user.id,
+          position,
+          priority: newPriority,
+        })
+        .select()
+        .single();
+
+      if (error) throw error;
+
+      toast.success("Task created");
+      closeAdd();
+      qc.invalidateQueries({ queryKey: ["all-tasks"] });
+      qc.invalidateQueries({ queryKey: ["tasks"] });
+      qc.invalidateQueries({ queryKey: ["dashboard-tasks"] });
+      qc.invalidateQueries({ queryKey: ["analytics-tasks"] });
+      if (data?.id) setSelectedTaskId(data.id);
+    } catch (err: any) {
+      toast.error(err?.message || "Could not create task");
+    } finally {
+      setCreating(false);
+    }
+  };
+
   const today = new Date();
   today.setHours(0, 0, 0, 0);
 
   return (
     <div className="space-y-5">
-      <div>
-        <h1 className="font-display text-2xl font-bold tracking-tight">Tasks</h1>
-        <p className="text-sm text-muted-foreground">
-          All work across your workspace.{" "}
-          <span className="text-xs text-muted-foreground/60">Double-click title to edit inline.</span>
-        </p>
+      <div className="flex flex-wrap items-start justify-between gap-3">
+        <div>
+          <h1 className="font-display text-2xl font-bold tracking-tight">Tasks</h1>
+          <p className="text-sm text-muted-foreground">
+            All work across your workspace.{" "}
+            <span className="text-xs text-muted-foreground/60">Double-click title to edit inline.</span>
+          </p>
+        </div>
+        <button
+          type="button"
+          onClick={openAdd}
+          disabled={adding || !boardsAndCols?.boards.length}
+          className="btn-primary inline-flex items-center gap-2 px-4 py-2 text-sm disabled:opacity-60"
+          data-testid="tasks-add-task-btn"
+          title={
+            boardsAndCols?.boards.length
+              ? "Add a new task"
+              : "Create a board first from the Board page"
+          }
+        >
+          <Plus className="h-4 w-4" /> Add task
+        </button>
       </div>
+
+      {adding ? (
+        <div
+          className="card-surface space-y-3 p-4"
+          data-testid="tasks-add-task-form"
+        >
+          <div className="flex items-center justify-between">
+            <h2 className="text-sm font-semibold">New task</h2>
+            <button
+              type="button"
+              onClick={closeAdd}
+              className="grid h-7 w-7 place-items-center rounded-md text-muted-foreground transition hover:bg-muted hover:text-foreground"
+              aria-label="Cancel"
+              data-testid="tasks-add-task-cancel-icon"
+            >
+              <X className="h-4 w-4" />
+            </button>
+          </div>
+          <input
+            autoFocus
+            value={newTitle}
+            onChange={(e) => setNewTitle(e.target.value)}
+            onKeyDown={(e) => {
+              if (e.key === "Enter" && !creating) {
+                e.preventDefault();
+                handleCreateTask();
+              }
+              if (e.key === "Escape" && !creating) closeAdd();
+            }}
+            placeholder="What needs doing?"
+            className="input-field py-2 text-sm"
+            data-testid="tasks-add-task-title-input"
+          />
+          <div className="grid gap-3 sm:grid-cols-3">
+            <label className="flex flex-col gap-1 text-xs text-muted-foreground">
+              Board
+              <select
+                value={newBoardId}
+                onChange={(e) => handleBoardChange(e.target.value)}
+                className="input-field py-2 text-sm"
+                data-testid="tasks-add-task-board-select"
+              >
+                {(boardsAndCols?.boards ?? []).map((b: any) => (
+                  <option key={b.id} value={b.id}>
+                    {b.name}
+                  </option>
+                ))}
+              </select>
+            </label>
+            <label className="flex flex-col gap-1 text-xs text-muted-foreground">
+              Status
+              <select
+                value={newColumnId}
+                onChange={(e) => setNewColumnId(e.target.value)}
+                className="input-field py-2 text-sm"
+                data-testid="tasks-add-task-column-select"
+              >
+                {(boardsAndCols?.cols ?? [])
+                  .filter((c: any) => c.board_id === newBoardId)
+                  .sort((a, b) => a.position - b.position)
+                  .map((c) => (
+                    <option key={c.id} value={c.id}>
+                      {c.name}
+                    </option>
+                  ))}
+              </select>
+            </label>
+            <label className="flex flex-col gap-1 text-xs text-muted-foreground">
+              Priority
+              <select
+                value={newPriority}
+                onChange={(e) => setNewPriority(e.target.value)}
+                className="input-field py-2 text-sm"
+                data-testid="tasks-add-task-priority-select"
+              >
+                {PRIORITY_OPTIONS.map((p) => (
+                  <option key={p} value={p}>
+                    {p[0].toUpperCase() + p.slice(1)}
+                  </option>
+                ))}
+              </select>
+            </label>
+          </div>
+          <div className="flex items-center gap-2">
+            <button
+              type="button"
+              onClick={handleCreateTask}
+              disabled={creating || !newTitle.trim()}
+              className="btn-primary inline-flex items-center gap-2 px-4 py-2 text-sm disabled:opacity-60"
+              data-testid="tasks-add-task-save-btn"
+            >
+              {creating ? <Loader2 className="h-4 w-4 animate-spin" /> : <Plus className="h-4 w-4" />}
+              Create task
+            </button>
+            <button
+              type="button"
+              onClick={closeAdd}
+              disabled={creating}
+              className="rounded-lg px-3 py-2 text-sm font-medium text-muted-foreground transition-colors hover:bg-muted hover:text-foreground disabled:opacity-50"
+              data-testid="tasks-add-task-cancel-btn"
+            >
+              Cancel
+            </button>
+          </div>
+        </div>
+      ) : null}
 
       <div className="card-surface flex flex-wrap items-center gap-2 p-3">
         <div className="relative min-w-[200px] flex-1">
@@ -205,8 +412,18 @@ function TasksPage() {
             <Loader2 className="h-5 w-5 animate-spin text-primary-600" />
           </div>
         ) : filtered.length === 0 ? (
-          <div className="grid h-40 place-items-center text-sm text-muted-foreground">
-            No tasks match your filters.
+          <div className="grid h-40 place-items-center gap-2 text-sm text-muted-foreground">
+            <span>No tasks match your filters.</span>
+            {!adding && boardsAndCols?.boards.length ? (
+              <button
+                type="button"
+                onClick={openAdd}
+                className="inline-flex items-center gap-1.5 rounded-md px-2.5 py-1 text-xs font-medium text-primary-700 hover:bg-primary-50"
+                data-testid="tasks-empty-add-task-btn"
+              >
+                <Plus className="h-3.5 w-3.5" /> Add a task
+              </button>
+            ) : null}
           </div>
         ) : (
           <table className="w-full text-sm">

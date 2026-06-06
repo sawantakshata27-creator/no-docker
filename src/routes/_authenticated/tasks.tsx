@@ -116,8 +116,28 @@ function TasksPage() {
 
   const selectedTask = tasks.find((t) => t.id === selectedTaskId) ?? null;
 
+  // Status options must be scoped to the selected task's board. Passing every
+  // column across all boards duplicated names like "In Progress" / "Done" in
+  // the drawer and let users pick a column_id from the wrong board (issue #22).
+  const drawerColumns = useMemo(() => {
+    if (!selectedTask) return [];
+    return cols.filter((c) => c.board_id === selectedTask.board_id);
+  }, [cols, selectedTask?.board_id]);
+
   const patchTask = (taskId: string, patch: Partial<TaskRecord>) => {
     setPatches((prev) => ({ ...prev, [taskId]: { ...(prev[taskId] ?? {}), ...patch } }));
+    // Refetch so a later reopen reads the persisted row, then drop the overlay.
+    void qc.invalidateQueries({ queryKey: ["all-tasks"] }).then(() => {
+      setPatches((prev) => {
+        if (!prev[taskId]) return prev;
+        const next = { ...prev };
+        delete next[taskId];
+        return next;
+      });
+    });
+    qc.invalidateQueries({ queryKey: ["tasks"] });
+    qc.invalidateQueries({ queryKey: ["dashboard-tasks"] });
+    qc.invalidateQueries({ queryKey: ["analytics-tasks"] });
   };
 
   const removeTask = (taskId: string) => {
@@ -532,7 +552,7 @@ function TasksPage() {
       <TaskDetailsDrawer
         open={!!selectedTask}
         task={selectedTask}
-        columns={cols}
+        columns={drawerColumns}
         onOpenChange={(open) => {
           if (!open) setSelectedTaskId(null);
         }}

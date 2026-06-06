@@ -19,6 +19,7 @@ export type ColumnRecord = {
   name: string;
   color: string | null;
   position: number;
+  board_id?: string;
 };
 
 export const PRIORITY_OPTIONS = ["high", "medium", "low"] as const;

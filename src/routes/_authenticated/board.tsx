@@ -1,7 +1,7 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useMemo, useState } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { CalendarClock, DollarSign, Layers3, Loader2, Pencil, Plus, Save, X } from "lucide-react";
+import { CalendarClock, DollarSign, Globe, Layers3, Link2, Loader2, Pencil, Plus, Save, X } from "lucide-react";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { KanbanBoard } from "@/components/kanban/KanbanBoard";
@@ -21,6 +21,7 @@ type BoardRow = {
   scheduled_delivery_date: string | null;
   budget_total: number | null;
   budget_spent: number | null;
+  is_public: boolean;
 };
 
 const DEFAULT_COLUMNS = [
@@ -44,11 +45,11 @@ function BoardPage() {
       const query = org
         ? supabase
             .from("boards")
-            .select("id, name, key, scheduled_delivery_date, budget_total, budget_spent")
+            .select("id, name, key, scheduled_delivery_date, budget_total, budget_spent, is_public")
             .eq("org_id", org.id)
         : supabase
             .from("boards")
-            .select("id, name, key, scheduled_delivery_date, budget_total, budget_spent")
+            .select("id, name, key, scheduled_delivery_date, budget_total, budget_spent, is_public")
             .eq("owner_id", user!.id);
       const { data, error } = await query.order("created_at", { ascending: true });
       if (error) throw error;
@@ -236,6 +237,17 @@ function BoardPage() {
           )}
           {board && (
             <BudgetEditor
+              board={board}
+              canEdit={canEditSchedule}
+              onSaved={() =>
+                queryClient.invalidateQueries({
+                  queryKey: ["boards", org?.id ?? user?.id],
+                })
+              }
+            />
+          )}
+          {board && (
+            <PublicShareToggle
               board={board}
               canEdit={canEditSchedule}
               onSaved={() =>
@@ -480,6 +492,67 @@ function BudgetEditor({
             <X className="h-4 w-4" />
           </button>
         </div>
+      )}
+    </div>
+  );
+}
+
+function PublicShareToggle({
+  board,
+  canEdit,
+  onSaved,
+}: {
+  board: BoardRow;
+  canEdit: boolean;
+  onSaved: () => void;
+}) {
+  const [saving, setSaving] = useState(false);
+  const [copied, setCopied] = useState(false);
+
+  const toggle = async () => {
+    setSaving(true);
+    try {
+      const { error } = await supabase.from("boards").update({ is_public: !board.is_public }).eq("id", board.id);
+      if (error) throw error;
+      toast.success(board.is_public ? "Public link disabled" : "Public link enabled");
+      onSaved();
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : "Could not update");
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const copyLink = async () => {
+    const url = `${window.location.origin}/board/${board.id}/public`;
+    await navigator.clipboard.writeText(url);
+    setCopied(true);
+    toast.success("Public link copied!");
+    setTimeout(() => setCopied(false), 2000);
+  };
+
+  return (
+    <div className={`card-surface flex items-center gap-3 px-4 py-2.5 ${board.is_public ? "border-blue-200 bg-blue-50" : ""}`} data-testid="public-share-toggle">
+      <div className={`grid h-9 w-9 place-items-center rounded-xl ${board.is_public ? "bg-blue-100 text-blue-700" : "bg-muted text-muted-foreground"}`}>
+        <Globe className="h-4 w-4" />
+      </div>
+      <div>
+        <div className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">Public link</div>
+        <div className="mt-0.5 text-sm font-semibold">{board.is_public ? "Enabled" : "Disabled"}</div>
+      </div>
+      {canEdit && (
+        <button onClick={toggle} disabled={saving}
+          className={`ml-1 relative h-6 w-11 rounded-full transition-colors disabled:opacity-50 ${board.is_public ? "bg-blue-600" : "bg-muted-foreground/30"}`}
+          title={board.is_public ? "Disable public link" : "Enable public link"}>
+          <span className={`absolute top-0.5 left-0.5 h-5 w-5 rounded-full bg-white shadow transition-transform ${board.is_public ? "translate-x-5" : ""}`} />
+        </button>
+      )}
+      {board.is_public && (
+        <button onClick={copyLink}
+          className="ml-1 grid h-8 w-8 place-items-center rounded-lg text-muted-foreground transition hover:bg-blue-100 hover:text-blue-700"
+          title="Copy public link">
+          {copied ? <Save className="h-4 w-4 text-emerald-600" /> : <Link2 className="h-4 w-4" />}
+        </button>
       )}
     </div>
   );

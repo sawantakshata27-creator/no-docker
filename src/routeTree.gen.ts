@@ -21,6 +21,7 @@ import { Route as AuthenticatedDocumentsRouteImport } from './routes/_authentica
 import { Route as AuthenticatedDashboardRouteImport } from './routes/_authenticated/dashboard'
 import { Route as AuthenticatedBoardRouteImport } from './routes/_authenticated/board'
 import { Route as AuthenticatedAnalyticsRouteImport } from './routes/_authenticated/analytics'
+import { Route as BoardBoardIdPublicRouteImport } from './routes/board.$boardId.public'
 
 const LoginRoute = LoginRouteImport.update({
   id: '/login',
@@ -81,10 +82,16 @@ const AuthenticatedAnalyticsRoute = AuthenticatedAnalyticsRouteImport.update({
   path: '/analytics',
   getParentRoute: () => AuthenticatedRoute,
 } as any)
+const BoardBoardIdPublicRoute = BoardBoardIdPublicRouteImport.update({
+  id: '/board/$boardId/public',
+  path: '/board/$boardId/public',
+  getParentRoute: () => rootRouteImport,
+} as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/login': typeof LoginRoute
+  '/board/$boardId/public': typeof BoardBoardIdPublicRoute
   '/analytics': typeof AuthenticatedAnalyticsRoute
   '/board': typeof AuthenticatedBoardRoute
   '/dashboard': typeof AuthenticatedDashboardRoute
@@ -98,6 +105,7 @@ export interface FileRoutesByFullPath {
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/login': typeof LoginRoute
+  '/board/$boardId/public': typeof BoardBoardIdPublicRoute
   '/analytics': typeof AuthenticatedAnalyticsRoute
   '/board': typeof AuthenticatedBoardRoute
   '/dashboard': typeof AuthenticatedDashboardRoute
@@ -155,6 +163,7 @@ export interface FileRouteTypes {
     | '/'
     | '/_authenticated'
     | '/login'
+    | '/board/$boardId/public'
     | '/_authenticated/analytics'
     | '/_authenticated/board'
     | '/_authenticated/dashboard'
@@ -171,6 +180,7 @@ export interface RootRouteChildren {
   AuthenticatedRoute: typeof AuthenticatedRouteWithChildren
   LoginRoute: typeof LoginRoute
   AuthCallbackRoute: typeof AuthCallbackRoute
+  BoardBoardIdPublicRoute: typeof BoardBoardIdPublicRoute
 }
 
 declare module '@tanstack/react-router' {
@@ -293,6 +303,7 @@ const rootRouteChildren: RootRouteChildren = {
   AuthenticatedRoute: AuthenticatedRouteWithChildren,
   LoginRoute: LoginRoute,
   AuthCallbackRoute: AuthCallbackRoute,
+  BoardBoardIdPublicRoute: BoardBoardIdPublicRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)

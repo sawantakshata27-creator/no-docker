@@ -73,17 +73,22 @@ export function TaskDetailsDrawer({
   // `draft` is a local working copy. Edits no longer persist until the user
   // clicks "Save task". Closing/changing tasks discards unsaved edits.
   const [draft, setDraft] = useState<TaskRecord | null>(task);
+  // `baseline` is the editable snapshot we diff `draft` against to detect
+  // unsaved edits. Stored in state (not memo) so we can reset it after a
+  // successful save — otherwise the drawer would keep flagging the just-saved
+  // fields as dirty (and prompt "Discard unsaved changes?" on close) because
+  // the parent patches the same task id in place and the memo wouldn't refire.
+  // See issue #22.
+  const [baseline, setBaseline] = useState<Partial<TaskRecord> | null>(
+    task ? pickEditable(task) : null,
+  );
   const [saving, setSaving] = useState(false);
   const [deleting, setDeleting] = useState(false);
 
   useEffect(() => {
     setDraft(task);
+    setBaseline(task ? pickEditable(task) : null);
   }, [task?.id, open]);
-
-  const baseline = useMemo<Partial<TaskRecord> | null>(
-    () => (task ? pickEditable(task) : null),
-    [task?.id, open],
-  );
 
   const dirtyPatch = useMemo<Partial<TaskRecord>>(() => {
     if (!draft || !baseline) return {};
@@ -127,6 +132,10 @@ export function TaskDetailsDrawer({
       // Bubble the patch up so the board/list reflects the new values without
       // waiting for a refetch.
       onTaskPatched(task.id, dirtyPatch);
+      // Reset the baseline to the just-saved values so subsequent diffs see a
+      // clean slate. Without this, the drawer would keep flagging these fields
+      // as "Unsaved changes" and prompt "Discard?" on close (issue #22).
+      setBaseline((current) => ({ ...(current ?? {}), ...dirtyPatch }));
       toast.success("Task saved");
     } catch (error: any) {
       toast.error(error?.message || "Failed to save task");

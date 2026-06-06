@@ -240,6 +240,20 @@ These are the human owner's exact answers to setup questions. Treat as binding.
 
 ## 11. Changelog (append at the top of the list)
 
+- **2026-01 — `fix/task-drawer-baseline-after-save`** (refs **issue #22 — Task after
+  clicking sidebar not working properly**, item 1: "Even after saving its not being
+  saved and asign to discard change when I check"): Fix the Task drawer still flagging
+  just-saved fields as **Unsaved changes** and prompting "Discard unsaved changes?" on
+  close. Root cause: `baseline` was a `useMemo` keyed on `[task?.id, open]`, so when
+  the parent patched the same task in place after a save the memo didn't refire and
+  the diff against `draft` still saw the saved fields as dirty. Converted `baseline`
+  to local state and now reset it to the just-saved values inside `handleSave` after
+  `onTaskPatched` bubbles up. Single-file change to
+  `src/components/tasks/TaskDetailsDrawer.tsx`, ~10 LoC. No schema change, no new deps.
+  Items 2 (status dropdown duplicates) and 3 (centre-aligned drawer) from issue #22
+  are intentionally not bundled here — separate small PRs per the working agreement
+  in § 5.
+
 - **2026-01 — `docs/agents-mark-status-dropdown-slice-done`** (refs **issue #11 — Tasks**,
   closes § 14.5): Marked the Status-dropdown slice as ✅ DONE in § 14.5 and recorded the
   three slices that closed it (PR #23 `Backlog → New Task`, PR #26 add `Error` column,

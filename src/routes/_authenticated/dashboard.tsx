@@ -21,6 +21,7 @@ import {
   CheckCircle2,
   Clock,
   AlertTriangle,
+  DollarSign,
   Files,
   Copy,
   Check,
@@ -70,6 +71,18 @@ function Dashboard() {
             .eq("boards.owner_id", user!.id);
       const { data } = await q.order("created_at", { ascending: false });
       return data ?? [];
+    },
+  });
+
+  const { data: boardsBudget } = useQuery({
+    queryKey: ["boards-budget", org?.id],
+    enabled: !!org,
+    queryFn: async () => {
+      const { data } = await supabase
+        .from("boards")
+        .select("id, name, budget_total, budget_spent")
+        .eq("org_id", org!.id);
+      return (data ?? []).filter((b: any) => b.budget_total != null);
     },
   });
 
@@ -252,6 +265,38 @@ function Dashboard() {
         </div>
       </motion.div>
 
+      {/* Budget utilisation */}
+      {boardsBudget && boardsBudget.length > 0 && (
+        <motion.div variants={sectionItem} className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+          {boardsBudget.map((b: any) => {
+            const pct = b.budget_total ? Math.round(((b.budget_spent ?? 0) / b.budget_total) * 100) : 0;
+            const remaining = (b.budget_total ?? 0) - (b.budget_spent ?? 0);
+            const alert80 = pct >= 80;
+            return (
+              <motion.div key={b.id} whileHover={{ y: -2 }} className={`card-surface p-5 ${alert80 ? "border-amber-300 bg-amber-50" : ""}`}>
+                <div className="flex items-center gap-2">
+                  <div className={`grid h-8 w-8 shrink-0 place-items-center rounded-xl ${alert80 ? "bg-amber-100 text-amber-600" : "bg-emerald-50 text-emerald-600"}`}>
+                    <DollarSign className="h-4 w-4" />
+                  </div>
+                  <div className="min-w-0 flex-1 truncate">
+                    <div className="truncate text-sm font-semibold">{b.name}</div>
+                    <div className="text-[10px] text-muted-foreground">Budget utilisation</div>
+                  </div>
+                  <span className={`rounded-full px-2 py-0.5 text-xs font-bold ${pct >= 100 ? "bg-red-100 text-red-700" : pct >= 80 ? "bg-amber-100 text-amber-700" : "bg-emerald-100 text-emerald-700"}`}>{pct}%</span>
+                </div>
+                <div className="mt-3 h-2 rounded-full bg-muted">
+                  <div className={`h-2 rounded-full transition-all ${pct >= 100 ? "bg-red-500" : pct >= 80 ? "bg-amber-500" : "bg-emerald-500"}`} style={{ width: `${Math.min(pct, 100)}%` }} />
+                </div>
+                <div className="mt-2 flex justify-between text-xs text-muted-foreground">
+                  <span>Spent: <span className="font-medium text-foreground">${(b.budget_spent ?? 0).toLocaleString()}</span></span>
+                  <span>Remaining: <span className={`font-medium ${remaining < 0 ? "text-red-600" : "text-foreground"}`}>${remaining.toLocaleString()}</span></span>
+                </div>
+                {alert80 && <p className="mt-2 text-[10px] font-medium text-amber-700">⚠ Spend exceeds 80% of budget</p>}
+              </motion.div>
+            );
+          })}
+        </motion.div>
+      )}
       {/* Charts row 2 */}
       <div className="grid gap-4 lg:grid-cols-3">
         <div className="card-surface p-5 lg:col-span-2">

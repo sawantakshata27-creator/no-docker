@@ -75,7 +75,7 @@ export function BoardProductivityMetrics({ tasks }: BoardProductivityMetricsProp
         <div>
           <h2 className="text-sm font-semibold">Process productivity</h2>
           <p className="text-[11px] text-muted-foreground">
-            Files completed per hour over the last 24 hours, vs target throughput.
+            Files processed per hour (24-hour rolling window). Uses <em>files_count</em> per task where set, else 1 task = 1 unit.
           </p>
         </div>
       </header>

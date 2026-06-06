@@ -33,13 +33,13 @@ import { Link } from "@tanstack/react-router";
 
 export const Route = createFileRoute("/_authenticated/dashboard")({ component: Dashboard });
 
+// Target throughput rates from PROCESS_PRODUCTIVITY_TARGETS in task-model.ts
+// Sign Creation: 5.6 files/hr | Pre-processing: 15 | Association: 13 | Adjustment: 228
 const PROCESSES = [
   { name: "Sign Creation", value: 5.6, color: "#7c3aed" },
   { name: "Pre-processing", value: 15, color: "#3b82f6" },
-  { name: "Association", value: 228, color: "#10b981" },
-  { name: "Adjustment", value: 13, color: "#f59e0b" },
-  { name: "QA", value: 20, color: "#06b6d4" },
-  { name: "Delivery", value: 50, color: "#ef4444" },
+  { name: "Association", value: 13, color: "#10b981" },
+  { name: "Adjustment", value: 228, color: "#f59e0b" },
 ];
 
 const TREND = Array.from({ length: 14 }, (_, i) => ({
@@ -263,8 +263,8 @@ function Dashboard() {
       {/* Charts row 2 */}
       <div className="grid gap-4 lg:grid-cols-3">
         <div className="card-surface p-5 lg:col-span-2">
-          <h3 className="font-semibold">Pipeline throughput</h3>
-          <p className="text-xs text-muted-foreground">Files / hour by stage</p>
+          <h3 className="font-semibold">Pipeline throughput targets</h3>
+          <p className="text-xs text-muted-foreground">Files / hour · target per stage</p>
           <div className="mt-4 h-52">
             <ResponsiveContainer width="100%" height="100%">
               <BarChart data={PROCESSES} layout="vertical" margin={{ left: 24 }}>

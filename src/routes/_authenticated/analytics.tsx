@@ -321,6 +321,34 @@ function Analytics() {
           </div>
         </div>
       </div>
+
+      {/* Quality Metrics */}
+      {quality && (
+        <div className="space-y-4">
+          <div className="flex items-center gap-2">
+            <h2 className="font-semibold text-lg">Quality Metrics</h2>
+            <span className="rounded-full bg-emerald-50 px-2 py-0.5 text-xs font-medium text-emerald-700">Six Sigma</span>
+          </div>
+          <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+            {[
+              { label: "DPU", value: quality.dpu.toFixed(4), sub: "Defects Per Unit", tip: "Error tasks / total tasks", color: quality.dpu < 0.05 ? "bg-emerald-50 text-emerald-700" : "bg-red-50 text-red-700" },
+              { label: "DPMO", value: quality.dpmo.toLocaleString(), sub: "Defects Per Million Opps", tip: "DPU × 1,000,000", color: quality.dpmo < 50000 ? "bg-emerald-50 text-emerald-700" : "bg-red-50 text-red-700" },
+              { label: "FTPR", value: quality.ftpr.toFixed(1) + "%", sub: "First Time Pass Rate", tip: "Done tasks / total tasks", color: quality.ftpr > 90 ? "bg-emerald-50 text-emerald-700" : quality.ftpr > 70 ? "bg-amber-50 text-amber-700" : "bg-red-50 text-red-700" },
+              { label: "Score", value: quality.score + "/100", sub: "Quality Score", tip: "100 − (DPU × 100)", color: quality.score > 90 ? "bg-emerald-50 text-emerald-700" : quality.score > 70 ? "bg-amber-50 text-amber-700" : "bg-red-50 text-red-700" },
+            ].map(({ label, value, sub, tip, color }) => (
+              <div key={label} className="card-surface p-5" title={tip}>
+                <div className={`inline-flex rounded-xl px-3 py-1.5 text-xl font-bold ${color}`}>{value}</div>
+                <div className="mt-2 text-sm font-semibold">{label}</div>
+                <div className="text-xs text-muted-foreground">{sub}</div>
+              </div>
+            ))}
+          </div>
+          <div className="card-surface p-4 text-xs text-muted-foreground">
+            <span className="font-medium text-foreground">Methodology:</span>
+            {" "}Defect = task in the Error column. Opportunity = any task. FTPR = tasks reaching Done ÷ total. Quality Score = 100 − (DPU × 100). Values update live as you filter.
+          </div>
+        </div>
+      )}
     </div>
   );
 }

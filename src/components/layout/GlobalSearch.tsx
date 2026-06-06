@@ -43,7 +43,8 @@ interface SearchResult {
   title: string;
   type: "task" | "document" | "board";
   description?: string;
-  route: string;
+  to: "/tasks" | "/documents" | "/board";
+  search?: { task: string };
 }
 
 export function GlobalSearch() {
@@ -81,61 +82,75 @@ export function GlobalSearch() {
   }, [user?.id]);
 
   const { data: results = [] } = useQuery({
-    queryKey: ["global-search", query, org?.id],
-    enabled: !!query && query.length > 1 && !!org,
+    queryKey: ["global-search", query, org?.id, user?.id],
+    enabled: !!query && query.length > 1 && !!user,
     queryFn: async () => {
       const results: SearchResult[] = [];
+      const escaped = query.replace(/[%_]/g, "\\$&");
 
-      // Search tasks
-      const { data: tasks } = await supabase
-        .from("tasks")
-        .select("id, title, description, board_id")
-        .or(`title.ilike.%${query}%,description.ilike.%${query}%`)
-        .limit(5);
+      const boardsQuery = org
+        ? supabase.from("boards").select("id, name").eq("org_id", org.id)
+        : supabase.from("boards").select("id, name").eq("owner_id", user!.id);
+      const { data: boards } = await boardsQuery;
+      const boardIds = (boards ?? []).map((board) => board.id);
 
-      tasks?.forEach((task) => {
-        results.push({
-          id: task.id,
-          title: task.title,
-          type: "task",
-          description: task.description,
-          route: `/tasks`,
+      if (boardIds.length) {
+        const { data: tasks } = await supabase
+          .from("tasks")
+          .select("id, title, description, process_stage, board_id")
+          .in("board_id", boardIds)
+          .or(
+            `title.ilike.%${escaped}%,description.ilike.%${escaped}%,process_stage.ilike.%${escaped}%`,
+          )
+          .limit(5);
+
+        tasks?.forEach((task) => {
+          results.push({
+            id: task.id,
+            title: task.title,
+            type: "task",
+            description: task.process_stage ?? task.description ?? undefined,
+            to: "/tasks",
+            search: { task: task.id },
+          });
         });
-      });
+      }
 
-      // Search documents
-      const { data: docs } = await supabase
-        .from("documents")
-        .select("id, title")
-        .eq("org_id", org!.id)
-        .ilike("title", `%${query}%`)
-        .limit(5);
+      if (org) {
+        const { data: docs } = await supabase
+          .from("documents")
+          .select("id, title")
+          .eq("org_id", org.id)
+          .ilike("title", `%${escaped}%`)
+          .limit(5);
 
-      docs?.forEach((doc) => {
-        results.push({
-          id: doc.id,
-          title: doc.title,
-          type: "document",
-          route: `/documents`,
+        docs?.forEach((doc) => {
+          results.push({
+            id: doc.id,
+            title: doc.title,
+            type: "document",
+            to: "/documents",
+          });
         });
-      });
+      }
 
-      // Search boards
-      const { data: boards } = await supabase
-        .from("boards")
-        .select("id, name")
-        .eq("org_id", org!.id)
-        .ilike("name", `%${query}%`)
-        .limit(3);
+      if (boardIds.length) {
+        const { data: matchedBoards } = await supabase
+          .from("boards")
+          .select("id, name")
+          .in("id", boardIds)
+          .ilike("name", `%${escaped}%`)
+          .limit(3);
 
-      boards?.forEach((board) => {
-        results.push({
-          id: board.id,
-          title: board.name,
-          type: "board",
-          route: `/board`,
+        matchedBoards?.forEach((board) => {
+          results.push({
+            id: board.id,
+            title: board.name,
+            type: "board",
+            to: "/board",
+          });
         });
-      });
+      }
 
       return results;
     },
@@ -166,7 +181,7 @@ export function GlobalSearch() {
 
   const handleSelect = (result: SearchResult) => {
     recordRecentSearch(query);
-    navigate({ to: result.route });
+    navigate({ to: result.to, search: result.search });
     setOpen(false);
   };
 

@@ -3,6 +3,7 @@ import { useEffect, useState } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/lib/auth-store";
+import { useEffect as useRealtimeEffect, useRef } from "react";
 import { useEditor, EditorContent } from "@tiptap/react";
 import StarterKit from "@tiptap/starter-kit";
 import Placeholder from "@tiptap/extension-placeholder";
@@ -174,6 +175,21 @@ function Editor({ doc, boards, onDelete }: { doc: Doc; boards: { id: string; nam
     return () => { editor.off("update", handler); clearTimeout(t); };
   }, [editor, doc.id, title, boardId, qc]);
 
+  // Subscribe to upload broadcasts from other team members
+  useRealtimeEffect(() => {
+    if (!org) return;
+    const channel = supabase
+      .channel(`doc-uploads:${org.id}`)
+      .on("broadcast", { event: "file_uploaded" }, ({ payload }) => {
+        toast(`📎 ${payload.uploaderName} uploaded ${payload.fileCount} file(s) to "${payload.docTitle}"`, {
+          duration: 5000,
+        });
+        qc.invalidateQueries({ queryKey: ["doc-files", doc.id] });
+      })
+      .subscribe();
+    return () => { supabase.removeChannel(channel); };
+  }, [org?.id, doc.id]);
+
   const saveMeta = async () => {
     await supabase.from("documents").update({ title: title || "Untitled", board_id: boardId || null }).eq("id", doc.id);
     qc.invalidateQueries({ queryKey: ["docs"] });
@@ -201,6 +217,18 @@ function Editor({ doc, boards, onDelete }: { doc: Doc; boards: { id: string; nam
       }
       toast.success(`${files.length} file(s) uploaded`);
       qc.invalidateQueries({ queryKey: ["doc-files", doc.id] });
+      // Broadcast upload event to other org members on the documents page
+      if (org) {
+        supabase.channel(`doc-uploads:${org.id}`).send({
+          type: "broadcast",
+          event: "file_uploaded",
+          payload: {
+            docTitle: doc.title || "Untitled",
+            fileCount: files.length,
+            uploaderName: user?.email ?? "A team member",
+          },
+        });
+      }
     } catch (error: any) {
       const raw = (error?.message || error?.error || "").toString();
       const isRls =

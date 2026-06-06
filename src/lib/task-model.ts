@@ -12,6 +12,10 @@ export type TaskRecord = {
   created_at?: string;
   completed_at?: string | null;
   assignee_id?: string | null;
+  // Issue #46 — total file count for this task's process. Used by the Task
+  // Details "File Counts" tab to auto-calculate estimated production hours
+  // against the process throughput target (files per hour).
+  file_count?: number | null;
 };
 
 export type ColumnRecord = {
@@ -55,6 +59,31 @@ export function productivityTargetFor(stage: string | null | undefined): number 
     return PROCESS_PRODUCTIVITY_TARGETS[stage as (typeof DEFAULT_PROCESS_STAGES)[number]];
   }
   return null;
+}
+
+// Issue #46 — estimated production hours = file_count / (files per hour target).
+// Returns null when we can't compute (missing stage target, non-positive count,
+// or invalid input) so the UI can hide the auto-calc display.
+export function estimatedProductionHours(
+  stage: string | null | undefined,
+  fileCount: number | null | undefined,
+): number | null {
+  const target = productivityTargetFor(stage);
+  if (target == null || target <= 0) return null;
+  if (fileCount == null || !Number.isFinite(fileCount) || fileCount <= 0) return null;
+  return fileCount / target;
+}
+
+// Human-readable estimate, e.g. "2h 30m" or "45m". Returns null when the
+// estimate can't be computed.
+export function formatProductionHours(hours: number | null): string | null {
+  if (hours == null || !Number.isFinite(hours) || hours <= 0) return null;
+  const totalMinutes = Math.round(hours * 60);
+  const h = Math.floor(totalMinutes / 60);
+  const m = totalMinutes % 60;
+  if (h === 0) return `${m}m`;
+  if (m === 0) return `${h}h`;
+  return `${h}h ${m}m`;
 }
 
 export function priorityClass(priority: string) {

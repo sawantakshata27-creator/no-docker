@@ -302,6 +302,7 @@ export type Database = {
           created_by: string
           description: string | null
           due_date: string | null
+          file_count: number | null
           id: string
           position: number
           priority: string
@@ -317,6 +318,7 @@ export type Database = {
           created_by: string
           description?: string | null
           due_date?: string | null
+          file_count?: number | null
           id?: string
           position?: number
           priority?: string
@@ -332,6 +334,7 @@ export type Database = {
           created_by?: string
           description?: string | null
           due_date?: string | null
+          file_count?: number | null
           id?: string
           position?: number
           priority?: string

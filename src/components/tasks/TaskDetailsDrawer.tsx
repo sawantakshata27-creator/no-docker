@@ -11,12 +11,15 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import {
   priorityClass,
   type ColumnRecord,
   type TaskRecord,
   DEFAULT_PROCESS_STAGES,
   productivityTargetFor,
+  estimatedProductionHours,
+  formatProductionHours,
 } from "@/lib/task-model";
 
 interface TaskDetailsDrawerProps {
@@ -39,6 +42,7 @@ const EDITABLE_FIELDS: (keyof TaskRecord)[] = [
   "due_date",
   "column_id",
   "completed_at",
+  "file_count",
 ];
 
 function pickEditable(task: TaskRecord): Partial<TaskRecord> {
@@ -197,134 +201,161 @@ export function TaskDetailsDrawer({
               </div>
             </DialogHeader>
 
-            <div className="space-y-4">
-              <label className="block space-y-1.5">
-                <span className="text-xs font-medium text-muted-foreground">Title</span>
-                <input
-                  className="input-field text-lg font-semibold"
-                  value={draft.title}
-                  onChange={(event) => patchDraft({ title: event.target.value })}
-                  placeholder="Untitled task"
-                  data-testid="task-title-input"
-                />
-              </label>
+            <Tabs defaultValue="details" className="w-full">
+              <TabsList className="w-full justify-start" data-testid="task-details-tabs">
+                <TabsTrigger value="details" data-testid="task-tab-details">
+                  Details
+                </TabsTrigger>
+                <TabsTrigger value="file-counts" data-testid="task-tab-file-counts">
+                  File Counts
+                </TabsTrigger>
+              </TabsList>
 
-              <label className="block space-y-1.5">
-                <span className="text-xs font-medium text-muted-foreground">Description</span>
-                <textarea
-                  className="input-field min-h-32 resize-y"
-                  value={draft.description ?? ""}
-                  onChange={(event) => patchDraft({ description: event.target.value || null })}
-                  placeholder="Add notes, blockers, or next steps"
-                  data-testid="task-description-input"
-                />
-              </label>
-            </div>
+              <TabsContent value="details" className="space-y-6 pt-4">
+                <div className="space-y-4">
+                  <label className="block space-y-1.5">
+                    <span className="text-xs font-medium text-muted-foreground">Title</span>
+                    <input
+                      className="input-field text-lg font-semibold"
+                      value={draft.title}
+                      onChange={(event) => patchDraft({ title: event.target.value })}
+                      placeholder="Untitled task"
+                      data-testid="task-title-input"
+                    />
+                  </label>
 
-            <div className="grid gap-4 sm:grid-cols-2">
-              <Field label="Status">
-                <select
-                  className="input-field"
-                  value={draft.column_id}
-                  onChange={(event) => handleColumnChange(event.target.value)}
-                  data-testid="task-status-select"
-                >
-                  {columns.map((column) => (
-                    <option key={column.id} value={column.id}>
-                      {column.name}
-                    </option>
-                  ))}
-                </select>
-              </Field>
-
-              <Field label="Priority">
-                <select
-                  className="input-field"
-                  value={draft.priority}
-                  onChange={(event) => patchDraft({ priority: event.target.value })}
-                  data-testid="task-priority-select"
-                >
-                  <option value="high">High</option>
-                  <option value="medium">Medium</option>
-                  <option value="low">Low</option>
-                </select>
-              </Field>
-
-              <Field label="Process">
-                <select
-                  className="input-field"
-                  value={draft.process_stage ?? ""}
-                  onChange={(event) => patchDraft({ process_stage: event.target.value || null })}
-                  data-testid="task-process-select"
-                >
-                  {!draft.process_stage ? <option value="">Select process…</option> : null}
-                  {DEFAULT_PROCESS_STAGES.map((stage) => (
-                    <option key={stage} value={stage}>
-                      {stage}
-                    </option>
-                  ))}
-                  {draft.process_stage &&
-                  !DEFAULT_PROCESS_STAGES.includes(
-                    draft.process_stage as (typeof DEFAULT_PROCESS_STAGES)[number],
-                  ) ? (
-                    <option value={draft.process_stage}>{draft.process_stage} (legacy)</option>
-                  ) : null}
-                </select>
-                {(() => {
-                  const target = productivityTargetFor(draft.process_stage);
-                  if (target == null) return null;
-                  return (
-                    <span
-                      className="mt-1 inline-flex items-center gap-1 text-[11px] text-muted-foreground"
-                      data-testid="task-process-productivity-target"
-                    >
-                      <span className="font-medium text-foreground">Target:</span>
-                      {target} files/hr
-                    </span>
-                  );
-                })()}
-              </Field>
-
-              <Field label="Due date">
-                <div className="relative">
-                  <CalendarDays className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-                  <input
-                    type="date"
-                    className="input-field pl-9"
-                    value={draft.due_date ? draft.due_date.slice(0, 10) : ""}
-                    onChange={(event) =>
-                      patchDraft({
-                        due_date: event.target.value
-                          ? new Date(`${event.target.value}T12:00:00`).toISOString()
-                          : null,
-                      })
-                    }
-                    data-testid="task-due-date-input"
-                  />
+                  <label className="block space-y-1.5">
+                    <span className="text-xs font-medium text-muted-foreground">Description</span>
+                    <textarea
+                      className="input-field min-h-32 resize-y"
+                      value={draft.description ?? ""}
+                      onChange={(event) =>
+                        patchDraft({ description: event.target.value || null })
+                      }
+                      placeholder="Add notes, blockers, or next steps"
+                      data-testid="task-description-input"
+                    />
+                  </label>
                 </div>
-              </Field>
-            </div>
 
-            <div className="rounded-2xl border border-border bg-muted/20 p-4">
-              <div className="text-xs font-medium text-muted-foreground">Live preview</div>
-              <div className="mt-3 flex flex-wrap items-center gap-2">
-                <span
-                  className={`rounded border px-2 py-1 text-[10px] font-medium uppercase ${priorityClass(draft.priority)}`}
-                >
-                  {draft.priority}
-                </span>
-                {draft.process_stage ? (
-                  <span className="rounded bg-primary-50 px-2 py-1 text-[10px] font-medium text-primary-700">
-                    {draft.process_stage}
-                  </span>
-                ) : null}
-                {draft.due_date ? (
-                  <span className="rounded bg-muted px-2 py-1 text-[10px] text-muted-foreground">
-                    Due {new Date(draft.due_date).toLocaleDateString()}
-                  </span>
-                ) : null}
-              </div>
-            </div>
+                <div className="grid gap-4 sm:grid-cols-2">
+                  <Field label="Status">
+                    <select
+                      className="input-field"
+                      value={draft.column_id}
+                      onChange={(event) => handleColumnChange(event.target.value)}
+                      data-testid="task-status-select"
+                    >
+                      {columns.map((column) => (
+                        <option key={column.id} value={column.id}>
+                          {column.name}
+                        </option>
+                      ))}
+                    </select>
+                  </Field>
+
+                  <Field label="Priority">
+                    <select
+                      className="input-field"
+                      value={draft.priority}
+                      onChange={(event) => patchDraft({ priority: event.target.value })}
+                      data-testid="task-priority-select"
+                    >
+                      <option value="high">High</option>
+                      <option value="medium">Medium</option>
+                      <option value="low">Low</option>
+                    </select>
+                  </Field>
+
+                  <Field label="Process">
+                    <select
+                      className="input-field"
+                      value={draft.process_stage ?? ""}
+                      onChange={(event) =>
+                        patchDraft({ process_stage: event.target.value || null })
+                      }
+                      data-testid="task-process-select"
+                    >
+                      {!draft.process_stage ? <option value="">Select process…</option> : null}
+                      {DEFAULT_PROCESS_STAGES.map((stage) => (
+                        <option key={stage} value={stage}>
+                          {stage}
+                        </option>
+                      ))}
+                      {draft.process_stage &&
+                      !DEFAULT_PROCESS_STAGES.includes(
+                        draft.process_stage as (typeof DEFAULT_PROCESS_STAGES)[number],
+                      ) ? (
+                        <option value={draft.process_stage}>
+                          {draft.process_stage} (legacy)
+                        </option>
+                      ) : null}
+                    </select>
+                    {(() => {
+                      const target = productivityTargetFor(draft.process_stage);
+                      if (target == null) return null;
+                      return (
+                        <span
+                          className="mt-1 inline-flex items-center gap-1 text-[11px] text-muted-foreground"
+                          data-testid="task-process-productivity-target"
+                        >
+                          <span className="font-medium text-foreground">Target:</span>
+                          {target} files/hr
+                        </span>
+                      );
+                    })()}
+                  </Field>
+
+                  <Field label="Due date">
+                    <div className="relative">
+                      <CalendarDays className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+                      <input
+                        type="date"
+                        className="input-field pl-9"
+                        value={draft.due_date ? draft.due_date.slice(0, 10) : ""}
+                        onChange={(event) =>
+                          patchDraft({
+                            due_date: event.target.value
+                              ? new Date(`${event.target.value}T12:00:00`).toISOString()
+                              : null,
+                          })
+                        }
+                        data-testid="task-due-date-input"
+                      />
+                    </div>
+                  </Field>
+                </div>
+
+                <div className="rounded-2xl border border-border bg-muted/20 p-4">
+                  <div className="text-xs font-medium text-muted-foreground">Live preview</div>
+                  <div className="mt-3 flex flex-wrap items-center gap-2">
+                    <span
+                      className={`rounded border px-2 py-1 text-[10px] font-medium uppercase ${priorityClass(draft.priority)}`}
+                    >
+                      {draft.priority}
+                    </span>
+                    {draft.process_stage ? (
+                      <span className="rounded bg-primary-50 px-2 py-1 text-[10px] font-medium text-primary-700">
+                        {draft.process_stage}
+                      </span>
+                    ) : null}
+                    {draft.due_date ? (
+                      <span className="rounded bg-muted px-2 py-1 text-[10px] text-muted-foreground">
+                        Due {new Date(draft.due_date).toLocaleDateString()}
+                      </span>
+                    ) : null}
+                  </div>
+                </div>
+              </TabsContent>
+
+              <TabsContent value="file-counts" className="space-y-4 pt-4">
+                <FileCountsTab
+                  processStage={draft.process_stage}
+                  fileCount={draft.file_count ?? null}
+                  onFileCountChange={(value) => patchDraft({ file_count: value })}
+                />
+              </TabsContent>
+            </Tabs>
 
             <div className="flex flex-wrap items-center justify-between gap-3 border-t border-border pt-4">
               <div className="text-xs text-muted-foreground">Task ID {draft.id.slice(0, 8)}</div>
@@ -360,5 +391,98 @@ function Field({ label, children }: { label: string; children: React.ReactNode }
       <span className="text-xs font-medium text-muted-foreground">{label}</span>
       {children}
     </label>
+  );
+}
+
+// Issue #46 — "File Counts" tab. Lets the user record the total file count
+// for the task's selected process and surfaces the auto-calculated estimated
+// production hours derived from the process's files/hour target.
+function FileCountsTab({
+  processStage,
+  fileCount,
+  onFileCountChange,
+}: {
+  processStage: string | null;
+  fileCount: number | null;
+  onFileCountChange: (value: number | null) => void;
+}) {
+  const target = productivityTargetFor(processStage);
+  const estHours = estimatedProductionHours(processStage, fileCount);
+  const formatted = formatProductionHours(estHours);
+
+  return (
+    <div className="space-y-4" data-testid="task-file-counts-panel">
+      <div className="rounded-2xl border border-border bg-muted/20 p-4">
+        <div className="text-xs font-medium text-muted-foreground">Process</div>
+        <div className="mt-1 flex items-baseline gap-2">
+          <span className="text-base font-semibold text-foreground">
+            {processStage ?? "No process selected"}
+          </span>
+          {target != null ? (
+            <span
+              className="text-xs text-muted-foreground"
+              data-testid="task-file-counts-target"
+            >
+              Target {target} files/hr
+            </span>
+          ) : (
+            <span className="text-xs text-muted-foreground">
+              Select a process on the Details tab to enable estimates.
+            </span>
+          )}
+        </div>
+      </div>
+
+      <Field label="Total file count">
+        <input
+          type="number"
+          min={0}
+          step={1}
+          inputMode="numeric"
+          className="input-field"
+          value={fileCount == null ? "" : String(fileCount)}
+          onChange={(event) => {
+            const raw = event.target.value;
+            if (raw === "") {
+              onFileCountChange(null);
+              return;
+            }
+            const parsed = Number.parseInt(raw, 10);
+            if (Number.isNaN(parsed) || parsed < 0) return;
+            onFileCountChange(parsed);
+          }}
+          placeholder="e.g. 1200"
+          data-testid="task-file-count-input"
+        />
+      </Field>
+
+      <div
+        className="rounded-2xl border border-border bg-background p-4"
+        data-testid="task-file-counts-estimate"
+      >
+        <div className="text-xs font-medium text-muted-foreground">
+          Estimated production hours
+        </div>
+        {estHours != null && formatted != null ? (
+          <div className="mt-1 space-y-1">
+            <div className="text-2xl font-semibold text-foreground">
+              {estHours.toFixed(2)} hrs
+              <span className="ml-2 text-sm font-normal text-muted-foreground">
+                ({formatted})
+              </span>
+            </div>
+            <div className="text-xs text-muted-foreground">
+              {fileCount} files ÷ {target} files/hr
+            </div>
+          </div>
+        ) : (
+          <div className="mt-1 text-sm text-muted-foreground">
+            Enter a file count above
+            {target == null ? " and pick a process with a throughput target" : ""} to see
+            the estimate.
+          </div>
+        )}
+      </div>
+    </div>
   );
 }

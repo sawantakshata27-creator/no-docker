@@ -240,6 +240,15 @@ These are the human owner's exact answers to setup questions. Treat as binding.
 
 ## 11. Changelog (append at the top of the list)
 
+- **2026-01 — `feat/task-manual-save-delete`** (refs **issue #11 — Tasks**, part 2/N of the
+  "Task Module Updates" sub-issue): Removed the autosave behaviour from `TaskDetailsDrawer`.
+  All edits now live in a local `draft` until the user clicks **Save task**. Added an
+  explicit **Delete task** button (was already in the drawer but is now disabled while a
+  save is in flight). The drawer header shows an `Unsaved changes` / `All changes saved`
+  indicator, and closing the drawer with a dirty draft prompts for confirmation. Save
+  diffs against the original task and only sends the changed fields. No DB changes.
+  Single-file diff (`TaskDetailsDrawer.tsx`), ~180 LoC rewritten.
+
 - **2026-01 — `feat/task-rename-process-and-trim-options`** (refs **issue #11 — Tasks**, part 1/N of the
   "Task Module Updates" sub-issue): UI-only rename of the Task drawer "Process stage" field to
   "Process", and trimmed the dropdown to the 4 stages we actually track for productivity metrics

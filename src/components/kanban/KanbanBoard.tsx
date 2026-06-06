@@ -170,8 +170,13 @@ export function KanbanBoard({ boardId, userId, columns, tasks: initialTasks, onC
     }
 
     const nextTask = data as TaskRecord;
-    setTasks((prev) => sortTasks([...prev, nextTask]));
-    dragSnapshotRef.current = sortTasks([...tasks, nextTask]);
+    // Keep dragSnapshotRef in sync inside the same updater batch so it is
+    // never stale if a drag starts in the same React 19 auto-batching tick.
+    setTasks((prev) => {
+      const next = sortTasks([...prev, nextTask]);
+      dragSnapshotRef.current = next;
+      return next;
+    });
     setAddingTo(null);
     setNewTitle("");
     setSelectedTaskId(nextTask.id);

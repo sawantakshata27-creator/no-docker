@@ -184,18 +184,31 @@ export function TaskDetailsDrawer({
                 </select>
               </Field>
 
-              <Field label="Process stage">
+              <Field label="Process">
                 <select
                   className="input-field"
                   value={draft.process_stage ?? ""}
                   onChange={(event) => patchDraft({ process_stage: event.target.value || null })}
+                  data-testid="task-process-select"
                 >
-                  <option value="">No stage</option>
+                  {/* Keep the empty option only when the current task still has
+                      no process assigned, so we don't silently overwrite older
+                      tasks. Once set, users can only pick a real process. */}
+                  {!draft.process_stage ? <option value="">Select process…</option> : null}
                   {DEFAULT_PROCESS_STAGES.map((stage) => (
                     <option key={stage} value={stage}>
                       {stage}
                     </option>
                   ))}
+                  {/* Preserve legacy values (QA / Delivery / etc.) if a task
+                      already has one outside the new list, so the select can
+                      display it without forcing a change. */}
+                  {draft.process_stage &&
+                  !DEFAULT_PROCESS_STAGES.includes(
+                    draft.process_stage as (typeof DEFAULT_PROCESS_STAGES)[number],
+                  ) ? (
+                    <option value={draft.process_stage}>{draft.process_stage} (legacy)</option>
+                  ) : null}
                 </select>
               </Field>
 

@@ -1,13 +1,21 @@
-import { createFileRoute } from "@tanstack/react-router";
+import { AlertTriangle, createFileRoute } from "@tanstack/react-router";
 import { useEffect, useMemo, useState } from "react";
 import { z } from "zod";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/lib/auth-store";
-import { Search, Loader2, ArrowUpDown, Pencil, Plus, X } from "lucide-react";
+import { Search, Loader2, ArrowUpDown, Pencil, Plus, X } , AlertTriangle } from "lucide-react";
 import { toast } from "sonner";
 import { TaskDetailsDrawer } from "@/components/tasks/TaskDetailsDrawer";
 import { type TaskRecord, type ColumnRecord, PRIORITY_OPTIONS } from "@/lib/task-model";
+
+// Default SLA hours per process stage (used for auto due-date calculation)
+const SLA_HOURS: Record<string, number> = {
+  "Sign Creation": 8,
+  "Pre-processing": 4,
+  "Association": 6,
+  "Adjustment": 2,
+};
 
 const searchSchema = z.object({
   task: z.string().optional(),
@@ -271,6 +279,18 @@ function TasksPage() {
   const today = new Date();
   today.setHours(0, 0, 0, 0);
 
+  // Overdue = has a due date, past today, and not in a Done column
+  const overdueCount = useMemo(() => {
+    const doneColIds = new Set(
+      (boardsAndCols?.cols ?? [])
+        .filter((c) => c.name?.toLowerCase() === "done")
+        .map((c) => c.id)
+    );
+    return (tasks ?? []).filter(
+      (t) => t.due_date && new Date(t.due_date) < today && !doneColIds.has(t.column_id)
+    ).length;
+  }, [tasks, boardsAndCols?.cols, today]);
+
   return (
     <div className="space-y-5">
       <div className="flex flex-wrap items-start justify-between gap-3">
@@ -296,6 +316,16 @@ function TasksPage() {
           <Plus className="h-4 w-4" /> Add task
         </button>
       </div>
+
+      {overdueCount > 0 && (
+        <div className="flex items-center gap-3 rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm" data-testid="overdue-banner">
+          <AlertTriangle className="h-4 w-4 shrink-0 text-red-500" />
+          <span className="font-medium text-red-700">
+            {overdueCount} task{overdueCount !== 1 ? "s" : ""} overdue
+          </span>
+          <span className="text-red-600">— these have passed their due date and are not yet done.</span>
+        </div>
+      )}
 
       {adding ? (
         <div

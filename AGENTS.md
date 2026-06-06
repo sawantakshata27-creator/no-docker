@@ -240,6 +240,18 @@ These are the human owner's exact answers to setup questions. Treat as binding.
 
 ## 11. Changelog (append at the top of the list)
 
+- **2026-01 — `feat/search-recent-searches`** (refs **issue #17 — Searchbar**, part 1/N):
+  Implemented the "store recent searches" requirement that the global-search palette
+  previously stubbed out as *"Recent searches coming soon"*. Recent queries are persisted
+  in `localStorage` under a per-user key (`global-search:recent:<userId>`), capped at the
+  last 5 unique entries (case-insensitive de-dup, most-recent first). They render in place
+  of the empty-state when the palette is opened with no active query, each row is
+  clickable to re-run the search, and a `Clear` button wipes the list. The footer hint
+  now reflects the actual count instead of the "coming soon" placeholder. Single-file
+  change (`src/components/layout/GlobalSearch.tsx`, ~80 LoC added). No new deps, no DB
+  changes. Already-shipped requirements from issue #17 verified still working: click to
+  open ✅, Esc to close ✅, click-outside backdrop closes ✅, `⌘K` toggle ✅.
+
 - **2026-01 — `feat/board-rename-backlog-to-new-task`** (refs **issue #8 — Kanban** and
   **issue #11 — Tasks** part 4/N, prep for the Status-dropdown slice in § 14.5): Renamed
   the default `Backlog` column to **`New Task`** to match the owner's spec. Touches the

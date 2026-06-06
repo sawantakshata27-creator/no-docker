@@ -18,7 +18,7 @@ import {
 } from "@dnd-kit/core";
 import { SortableContext, sortableKeyboardCoordinates, useSortable, verticalListSortingStrategy } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
-import { Calendar, GripVertical, Plus, Search, X } from "lucide-react";
+import { Calendar, GripVertical, Palette, Pencil, Plus, Search, X } from "lucide-react";
 import { motion } from "framer-motion";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
@@ -41,6 +41,9 @@ export function KanbanBoard({ boardId, userId, columns, tasks: initialTasks, onC
   const [addingTo, setAddingTo] = useState<string | null>(null);
   const [newTitle, setNewTitle] = useState("");
   const [filterQuery, setFilterQuery] = useState("");
+  const [addingColumn, setAddingColumn] = useState(false);
+  const [newColName, setNewColName] = useState("");
+  const [newColColor, setNewColColor] = useState("#6366f1");
   const dragSnapshotRef = useRef<TaskRecord[]>(sortTasks(initialTasks));
 
   useEffect(() => {
@@ -264,6 +267,23 @@ export function KanbanBoard({ boardId, userId, columns, tasks: initialTasks, onC
     }
   };
 
+  const addColumn = async () => {
+    const name = newColName.trim();
+    if (!name || !boardId) return;
+    const nextPos = columns.length > 0 ? Math.max(...columns.map((c) => c.position)) + 1 : 0;
+    const { error } = await supabase.from("board_columns").insert({
+      name,
+      board_id: boardId,
+      position: nextPos,
+      color: newColColor,
+    });
+    if (error) { toast.error(error.message || "Failed to add column"); return; }
+    toast.success(`Column "${name}" added`);
+    setAddingColumn(false);
+    setNewColName("");
+    onChange();
+  };
+
   const { org, membership } = useAuth();
   const isStakeholder = membership?.role === "stakeholder";
 
@@ -428,6 +448,47 @@ export function KanbanBoard({ boardId, userId, columns, tasks: initialTasks, onC
               </ColumnDroppable>
             );
           })}
+          {!isStakeholder && (
+            addingColumn ? (
+              <div className="flex w-64 shrink-0 flex-col gap-2 rounded-2xl border-2 border-dashed border-primary-300 bg-primary-50/50 p-3">
+                <input
+                  autoFocus
+                  value={newColName}
+                  onChange={(e) => setNewColName(e.target.value)}
+                  onKeyDown={(e) => {
+                    if (e.key === "Enter") addColumn();
+                    if (e.key === "Escape") { setAddingColumn(false); setNewColName(""); }
+                  }}
+                  placeholder="Column name…"
+                  className="input-field text-sm"
+                />
+                <div className="flex items-center gap-2 text-xs text-muted-foreground">
+                  <Palette className="h-3.5 w-3.5" />
+                  <input type="color" value={newColColor} onChange={(e) => setNewColColor(e.target.value)}
+                    className="h-6 w-10 cursor-pointer rounded border border-border" title="Pick column color" />
+                  <span>Color</span>
+                </div>
+                <div className="flex gap-2">
+                  <button onClick={addColumn} disabled={!newColName.trim()}
+                    className="btn-primary py-1.5 text-xs font-semibold disabled:opacity-50">
+                    Add column
+                  </button>
+                  <button onClick={() => { setAddingColumn(false); setNewColName(""); }}
+                    className="rounded-lg px-3 py-1.5 text-xs text-muted-foreground hover:bg-muted transition">
+                    Cancel
+                  </button>
+                </div>
+              </div>
+            ) : (
+              <button
+                onClick={() => setAddingColumn(true)}
+                className="flex h-fit w-64 shrink-0 items-center gap-2 rounded-2xl border-2 border-dashed border-border px-4 py-3 text-sm font-medium text-muted-foreground transition hover:border-primary-400 hover:bg-primary-50/50 hover:text-primary-700"
+                data-testid="add-column-btn"
+              >
+                <Plus className="h-4 w-4" /> Add column
+              </button>
+            )
+          )}
         </div>
 
         <DragOverlay 

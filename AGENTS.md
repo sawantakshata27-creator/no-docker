@@ -240,6 +240,18 @@ These are the human owner's exact answers to setup questions. Treat as binding.
 
 ## 11. Changelog (append at the top of the list)
 
+- **2026-01 — `fix/productivity-rolling-window-30`** (closes **issue #30 — Check
+  working of process productivity**): The `Process productivity` widget on the
+  board (`src/components/board/BoardProductivityMetrics.tsx`) was using a
+  cumulative-task-lifetime denominator (`sum(completed_at − created_at)` across
+  all completed tasks in the stage). That over-counted idle queue time and made
+  the actual rate collapse to ~0 even when work was being completed, which is
+  what the owner reported (`Sign Creation 0.0 / 5.6 files/hr — 2 done · 0% of
+  target`). Switched to a rolling **24-hour** window: `actual = (tasks completed
+  in last 24h at this stage) / 24`. Subtitle + per-card subtext updated to make
+  the window explicit (`done in last 24h`). No new deps, no DB change, no schema
+  change. Single-file change, ~25 LoC.
+
 - **2026-01 — `docs/agents-mark-status-dropdown-slice-done`** (refs **issue #11 — Tasks**,
   closes § 14.5): Marked the Status-dropdown slice as ✅ DONE in § 14.5 and recorded the
   three slices that closed it (PR #23 `Backlog → New Task`, PR #26 add `Error` column,

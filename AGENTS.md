@@ -240,6 +240,18 @@ These are the human owner's exact answers to setup questions. Treat as binding.
 
 ## 11. Changelog (append at the top of the list)
 
+- **2026-01 — `feat/board-rename-backlog-to-new-task`** (refs **issue #8 — Kanban** and
+  **issue #11 — Tasks** part 4/N, prep for the Status-dropdown slice in § 14.5): Renamed
+  the default `Backlog` column to **`New Task`** to match the owner's spec. Touches the
+  two seed paths (`src/routes/_authenticated/board.tsx` `DEFAULT_COLUMNS` and the
+  onboarding seed in `src/routes/_authenticated/onboarding.tsx`) and the dashboard pie
+  chart label (`Backlog → New Task` in `dashboard.tsx`). Adds an idempotent SQL migration
+  (`supabase/migrations/20260120120000_rename_backlog_to_new_task.sql`) that updates the
+  name of any existing `board_columns` row still called `Backlog`. No schema change, no
+  task data moved (`column_id` is preserved). Diff = 4 files, ~6 LoC. Follow-ups still
+  pending: add the **Error** column + per-status colours (`Grey / Blue / Orange / Red /
+  Green`), and then the Task drawer Status dropdown overhaul (§ 14.5).
+
 - **2026-01 — `fix/board-reindex-positions-on-delete`** (refs **issue #6 — CORE LOGIC**,
   also addresses **issue #8 — Kanban**, part 2/N): `KanbanBoard.removeTask` was
   reindexing positions in React state only — Supabase still held the old `position`

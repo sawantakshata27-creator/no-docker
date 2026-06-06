@@ -1,5 +1,7 @@
 import { useEffect, useMemo, useState } from "react";
-import { CalendarDays, Hash, Save, Trash2 } from "lucide-react";
+import { useQuery } from "@tanstack/react-query";
+import { useAuth } from "@/lib/auth-store";
+import { CalendarDays, Hash, Save, Trash2, UserCircle2 } from "lucide-react";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 // Issue #22 item 2: surface task details as a centered modal instead of a
@@ -40,6 +42,7 @@ const EDITABLE_FIELDS: (keyof TaskRecord)[] = [
   "column_id",
   "completed_at",
   "files_count",
+  "assignee_id",
 ];
 
 function pickEditable(task: TaskRecord): Partial<TaskRecord> {
@@ -82,8 +85,26 @@ export function TaskDetailsDrawer({
   const [savedBaseline, setSavedBaseline] = useState<Partial<TaskRecord> | null>(
     () => (task ? pickEditable(task) : null),
   );
+  const { org } = useAuth();
   const [saving, setSaving] = useState(false);
   const [deleting, setDeleting] = useState(false);
+
+  // Fetch active org members for the assignee dropdown
+  const { data: orgMembers } = useQuery({
+    queryKey: ["org-members-for-drawer", org?.id],
+    enabled: !!org,
+    queryFn: async () => {
+      const { data } = await supabase
+        .from("organization_members")
+        .select("user_id, profiles(id, full_name, email)")
+        .eq("org_id", org!.id)
+        .eq("status", "active");
+      return (data ?? []).map((m: any) => ({
+        id: m.profiles.id as string,
+        label: (m.profiles.full_name || m.profiles.email) as string,
+      }));
+    },
+  });
 
   useEffect(() => {
     if (!open) return;
@@ -342,6 +363,27 @@ export function TaskDetailsDrawer({
                     </span>
                   );
                 })()}
+              </Field>
+
+              <Field label="Assignee">
+                <div className="relative">
+                  <UserCircle2 className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+                  <select
+                    className="input-field pl-9"
+                    value={draft.assignee_id ?? ""}
+                    onChange={(event) =>
+                      patchDraft({ assignee_id: event.target.value || null })
+                    }
+                    data-testid="task-assignee-select"
+                  >
+                    <option value="">Unassigned</option>
+                    {(orgMembers ?? []).map((m) => (
+                      <option key={m.id} value={m.id}>
+                        {m.label}
+                      </option>
+                    ))}
+                  </select>
+                </div>
               </Field>
             </div>
 

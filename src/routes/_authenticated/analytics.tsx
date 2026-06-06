@@ -16,6 +16,7 @@ export const Route = createFileRoute("/_authenticated/analytics")({ component: A
 type T = {
   id: string; title: string; priority: string; process_stage: string | null;
   column_id: string; board_id: string; created_at: string; completed_at: string | null;
+  due_date: string | null; assignee_id: string | null;
 };
 
 function Analytics() {
@@ -29,8 +30,8 @@ function Analytics() {
     enabled: !!user,
     queryFn: async () => {
       const q = org
-        ? supabase.from("tasks").select("id,title,priority,process_stage,column_id,board_id,created_at,completed_at, boards!inner(org_id)").eq("boards.org_id", org.id)
-        : supabase.from("tasks").select("id,title,priority,process_stage,column_id,board_id,created_at,completed_at, boards!inner(owner_id)").eq("boards.owner_id", user!.id);
+        ? supabase.from("tasks").select("id,title,priority,process_stage,column_id,board_id,created_at,completed_at,due_date,assignee_id, boards!inner(org_id)").eq("boards.org_id", org.id)
+        : supabase.from("tasks").select("id,title,priority,process_stage,column_id,board_id,created_at,completed_at,due_date,assignee_id, boards!inner(owner_id)").eq("boards.owner_id", user!.id);
       const { data } = await q;
       return (data ?? []) as unknown as T[];
     },
@@ -97,9 +98,20 @@ function Analytics() {
 
   const exportCsv = () => {
     if (!filtered.length) return toast.info("Nothing to export");
-    const header = ["id", "title", "priority", "process_stage", "created_at", "completed_at"];
-    const rows = filtered.map((t) => header.map((h) => JSON.stringify((t as any)[h] ?? "")).join(","));
-    const csv = [header.join(","), ...rows].join("\n");
+    const colNameMap: Record<string, string> = {};
+    (cols ?? []).forEach((c: any) => (colNameMap[c.id] = c.name));
+    const headers = ["title", "process", "status", "priority", "start_date", "due_date", "assignee_id", "completed_at"];
+    const rows = filtered.map((t) => [
+      JSON.stringify(t.title ?? ""),
+      JSON.stringify(t.process_stage ?? ""),
+      JSON.stringify(colNameMap[t.column_id] ?? ""),
+      JSON.stringify(t.priority ?? ""),
+      JSON.stringify(t.created_at ? t.created_at.slice(0, 10) : ""),
+      JSON.stringify(t.due_date ? t.due_date.slice(0, 10) : ""),
+      JSON.stringify(t.assignee_id ?? ""),
+      JSON.stringify(t.completed_at ? t.completed_at.slice(0, 10) : ""),
+    ].join(","));
+    const csv = [headers.join(","), ...rows].join("\n");
     const blob = new Blob([csv], { type: "text/csv" });
     const url = URL.createObjectURL(blob);
     const a = document.createElement("a");
@@ -196,7 +208,7 @@ function Analytics() {
             <option value={7}>7 days</option><option value={14}>14 days</option><option value={30}>30 days</option><option value={90}>90 days</option>
           </select>
         </label>
-        <label className="flex items-center gap-2">Stage
+        <label className="flex items-center gap-2">Process
           <select className="input-field py-1.5 text-sm" value={stage} onChange={(e) => setStage(e.target.value)}>
             <option value="all">All</option>{stages.map((s) => <option key={s} value={s}>{s}</option>)}
           </select>

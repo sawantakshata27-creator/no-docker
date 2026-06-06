@@ -425,10 +425,10 @@ function TasksPage() {
           ]}
         />
         <Select
-          label="Stage"
+          label="Process"
           value={stage}
           onChange={setStage}
-          options={[["all", "All stages"], ...stages.map((s) => [s, s] as [string, string])]}
+          options={[["all", "All processes"], ...stages.map((s) => [s, s] as [string, string])]}
         />
         <Select
           label="Sort"

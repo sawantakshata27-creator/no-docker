@@ -127,14 +127,6 @@ function Dashboard() {
         variants={sectionItem}
         className="flex flex-wrap items-start justify-between gap-4"
       >
-        <motion.div variants={sectionItem}>
-          <h1 className="font-display text-2xl font-bold tracking-tight">
-            Welcome back, {profile?.full_name?.split(" ")[0] ?? "there"} 👋
-          </h1>
-          <p className="text-sm text-muted-foreground">
-            Here's what's happening across {org?.name ?? "your workspace"}.
-          </p>
-        </motion.div>
         {org && (
           <motion.button
             whileHover={{ y: -2 }}

@@ -25,7 +25,8 @@ const DEFAULT_COLUMNS = [
   { name: "New Task", position: 0, color: "#94a3b8" },
   { name: "In Progress", position: 1, color: "#3b82f6" },
   { name: "In Review", position: 2, color: "#f59e0b" },
-  { name: "Done", position: 3, color: "#10b981" },
+  { name: "Error", position: 3, color: "#ef4444" },
+  { name: "Done", position: 4, color: "#10b981" },
 ] as const;
 
 function BoardPage() {

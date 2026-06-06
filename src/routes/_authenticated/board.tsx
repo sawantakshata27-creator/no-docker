@@ -1,7 +1,7 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useMemo, useState } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { CalendarClock, Layers3, Loader2, Pencil, Plus, Save, X } from "lucide-react";
+import { CalendarClock, DollarSign, Layers3, Loader2, Pencil, Plus, Save, X } from "lucide-react";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { KanbanBoard } from "@/components/kanban/KanbanBoard";
@@ -19,6 +19,8 @@ type BoardRow = {
   name: string;
   key: string;
   scheduled_delivery_date: string | null;
+  budget_total: number | null;
+  budget_spent: number | null;
 };
 
 const DEFAULT_COLUMNS = [
@@ -42,11 +44,11 @@ function BoardPage() {
       const query = org
         ? supabase
             .from("boards")
-            .select("id, name, key, scheduled_delivery_date")
+            .select("id, name, key, scheduled_delivery_date, budget_total, budget_spent")
             .eq("org_id", org.id)
         : supabase
             .from("boards")
-            .select("id, name, key, scheduled_delivery_date")
+            .select("id, name, key, scheduled_delivery_date, budget_total, budget_spent")
             .eq("owner_id", user!.id);
       const { data, error } = await query.order("created_at", { ascending: true });
       if (error) throw error;
@@ -220,17 +222,30 @@ function BoardPage() {
             Open cards, quick-edit details, and drag tasks across workflow stages.
           </p>
         </div>
-        {board && (
-          <ScheduledDeliveryEditor
-            board={board}
-            canEdit={canEditSchedule}
-            onSaved={() =>
-              queryClient.invalidateQueries({
-                queryKey: ["boards", org?.id ?? user?.id],
-              })
-            }
-          />
-        )}
+        <div className="flex flex-wrap items-start gap-3">
+          {board && (
+            <ScheduledDeliveryEditor
+              board={board}
+              canEdit={canEditSchedule}
+              onSaved={() =>
+                queryClient.invalidateQueries({
+                  queryKey: ["boards", org?.id ?? user?.id],
+                })
+              }
+            />
+          )}
+          {board && (
+            <BudgetEditor
+              board={board}
+              canEdit={canEditSchedule}
+              onSaved={() =>
+                queryClient.invalidateQueries({
+                  queryKey: ["boards", org?.id ?? user?.id],
+                })
+              }
+            />
+          )}
+        </div>
       </div>
       <BoardProductivityMetrics tasks={tasks ?? []} />
       <KanbanBoard
@@ -355,6 +370,113 @@ function ScheduledDeliveryEditor({
             title="Cancel"
             data-testid="cancel-scheduled-delivery-btn"
           >
+            <X className="h-4 w-4" />
+          </button>
+        </div>
+      )}
+    </div>
+  );
+}
+
+function BudgetEditor({
+  board,
+  canEdit,
+  onSaved,
+}: {
+  board: BoardRow;
+  canEdit: boolean;
+  onSaved: () => void;
+}) {
+  const [editing, setEditing] = useState(false);
+  const [total, setTotal] = useState<string>(board.budget_total?.toString() ?? "");
+  const [spent, setSpent] = useState<string>(board.budget_spent?.toString() ?? "");
+  const [saving, setSaving] = useState(false);
+
+  const pct = board.budget_total ? Math.round(((board.budget_spent ?? 0) / board.budget_total) * 100) : null;
+  const overBudget = pct !== null && pct >= 80;
+  const remaining = (board.budget_total ?? 0) - (board.budget_spent ?? 0);
+
+  const save = async () => {
+    setSaving(true);
+    try {
+      const { error } = await supabase
+        .from("boards")
+        .update({
+          budget_total: total ? parseFloat(total) : null,
+          budget_spent: spent ? parseFloat(spent) : null,
+        })
+        .eq("id", board.id);
+      if (error) throw error;
+      toast.success("Budget updated");
+      setEditing(false);
+      onSaved();
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : "Could not update budget");
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  return (
+    <div
+      className={`card-surface flex items-center gap-3 px-4 py-2.5 ${overBudget ? "border-amber-300 bg-amber-50" : ""}`}
+      data-testid="budget-editor"
+    >
+      <div className={`grid h-9 w-9 place-items-center rounded-xl ${overBudget ? "bg-amber-100 text-amber-700" : "bg-emerald-50 text-emerald-700"}`}>
+        <DollarSign className="h-4 w-4" />
+      </div>
+      <div className="min-w-[10rem]">
+        <div className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">
+          Budget{pct !== null && (
+            <span className={`ml-1 rounded px-1 py-0.5 text-[9px] font-bold ${pct >= 100 ? "bg-red-100 text-red-700" : pct >= 80 ? "bg-amber-100 text-amber-700" : "bg-emerald-100 text-emerald-700"}`}>
+              {pct}%
+            </span>
+          )}
+        </div>
+        {editing ? (
+          <div className="mt-0.5 flex gap-1.5">
+            <input type="number" min="0" placeholder="Total $" value={total}
+              onChange={(e) => setTotal(e.target.value)}
+              className="w-24 rounded-md border border-border bg-card px-2 py-1 text-sm outline-none focus:border-primary-400"
+              data-testid="budget-total-input" />
+            <input type="number" min="0" placeholder="Spent $" value={spent}
+              onChange={(e) => setSpent(e.target.value)}
+              className="w-24 rounded-md border border-border bg-card px-2 py-1 text-sm outline-none focus:border-primary-400"
+              data-testid="budget-spent-input" />
+          </div>
+        ) : (
+          <div className="mt-0.5 text-sm font-semibold text-foreground" data-testid="budget-value">
+            {board.budget_total != null ? (
+              <>
+                <span>${(board.budget_spent ?? 0).toLocaleString()} / ${board.budget_total.toLocaleString()}</span>
+                {overBudget && <span className="ml-1.5 text-xs font-normal text-amber-600">⚠ High spend</span>}
+                <div className="mt-1 text-xs font-normal text-muted-foreground">
+                  Remaining: ${remaining >= 0 ? "" : "-"}${Math.abs(remaining).toLocaleString()}
+                </div>
+              </>
+            ) : (
+              <span className="text-muted-foreground">No budget set</span>
+            )}
+          </div>
+        )}
+      </div>
+      {canEdit && !editing && (
+        <button onClick={() => { setTotal(board.budget_total?.toString() ?? ""); setSpent(board.budget_spent?.toString() ?? ""); setEditing(true); }}
+          className="ml-1 grid h-8 w-8 place-items-center rounded-lg text-muted-foreground transition hover:bg-emerald-50 hover:text-emerald-700"
+          title="Edit budget" data-testid="edit-budget-btn">
+          <Pencil className="h-4 w-4" />
+        </button>
+      )}
+      {canEdit && editing && (
+        <div className="ml-1 flex items-center gap-1">
+          <button onClick={save} disabled={saving}
+            className="grid h-8 w-8 place-items-center rounded-lg bg-primary-600 text-white transition hover:bg-primary-700 disabled:opacity-50"
+            title="Save" data-testid="save-budget-btn">
+            {saving ? <Loader2 className="h-4 w-4 animate-spin" /> : <Save className="h-4 w-4" />}
+          </button>
+          <button onClick={() => setEditing(false)} disabled={saving}
+            className="grid h-8 w-8 place-items-center rounded-lg text-muted-foreground transition hover:bg-muted hover:text-destructive disabled:opacity-50"
+            title="Cancel">
             <X className="h-4 w-4" />
           </button>
         </div>

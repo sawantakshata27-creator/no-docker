@@ -12,6 +12,7 @@ export type TaskRecord = {
   created_at?: string;
   completed_at?: string | null;
   assignee_id?: string | null;
+  files_count?: number | null;
 };
 
 export type ColumnRecord = {

@@ -240,21 +240,25 @@ These are the human owner's exact answers to setup questions. Treat as binding.
 
 ## 11. Changelog (append at the top of the list)
 
-- **2026-01 — `feat/board-add-error-column`** (refs **issue #8 — Kanban** and
-  **issue #11 — Tasks** part 4/N, prep for the Status-dropdown slice in § 14.5):
-  Added the **`Error`** column between **In Review** and **Done** in both seed
-  paths (`DEFAULT_COLUMNS` in `src/routes/_authenticated/board.tsx` and the
-  onboarding seed in `src/routes/_authenticated/onboarding.tsx`) with the spec
-  red colour `#ef4444`. New idempotent SQL migration
-  (`supabase/migrations/20260121120000_add_error_column_to_boards.sql`) inserts
-  the `Error` column into every existing board that doesn't already have one —
-  it bumps the position of `Done` (and anything after) by 1 so the new column
-  slots in between, then inserts `Error` at the freed slot. No tasks are moved
-  (column_id is preserved). The per-status colour spec (Grey / Blue / Orange /
-  Red / Green) is now fully satisfied — the existing seed colours already match
-  the other 4 statuses. Diff = 3 files, ~10 LoC + 1 migration. Remaining follow-up:
-  the Task drawer Status dropdown overhaul tracked in § 14.5 can now proceed
-  because the columns it binds to finally include `Error`.
+- **2026-01 — `feat/search-keyboard-nav-recents`** (refs **issue #17 — Searchbar**, part 2/N):
+  Tiny follow-up to PR #24 — `↑/↓/Enter` in the global-search input now navigate the
+  **Recent searches** list when the query is empty (previously they only worked on live
+  search results, leaving the recents list mouse-only). The selected row gets the same
+  primary-tint highlight used elsewhere in the palette, with hover/`onMouseEnter`
+  syncing the keyboard cursor. Single-file change to `src/components/layout/GlobalSearch.tsx`,
+  ~25 LoC. No new deps, no DB changes.
+
+- **2026-01 — `feat/search-recent-searches`** (refs **issue #17 — Searchbar**, part 1/N):
+  Implemented the "store recent searches" requirement that the global-search palette
+  previously stubbed out as *"Recent searches coming soon"*. Recent queries are persisted
+  in `localStorage` under a per-user key (`global-search:recent:<userId>`), capped at the
+  last 5 unique entries (case-insensitive de-dup, most-recent first). They render in place
+  of the empty-state when the palette is opened with no active query, each row is
+  clickable to re-run the search, and a `Clear` button wipes the list. The footer hint
+  now reflects the actual count instead of the "coming soon" placeholder. Single-file
+  change (`src/components/layout/GlobalSearch.tsx`, ~80 LoC added). No new deps, no DB
+  changes. Already-shipped requirements from issue #17 verified still working: click to
+  open ✅, Esc to close ✅, click-outside backdrop closes ✅, `⌘K` toggle ✅.
 
 - **2026-01 — `feat/board-rename-backlog-to-new-task`** (refs **issue #8 — Kanban** and
   **issue #11 — Tasks** part 4/N, prep for the Status-dropdown slice in § 14.5): Renamed

@@ -6,6 +6,38 @@ import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/lib/auth-store";
 
+// localStorage key for recent searches. Scoped per-user so a shared device
+// doesn't leak one workspace's queries into another. Capped at 5 entries.
+const RECENT_SEARCHES_KEY_PREFIX = "global-search:recent:";
+const RECENT_SEARCHES_LIMIT = 5;
+
+function recentSearchesKey(userId: string | null | undefined) {
+  return `${RECENT_SEARCHES_KEY_PREFIX}${userId ?? "anon"}`;
+}
+
+function loadRecentSearches(userId: string | null | undefined): string[] {
+  if (typeof window === "undefined") return [];
+  try {
+    const raw = window.localStorage.getItem(recentSearchesKey(userId));
+    if (!raw) return [];
+    const parsed = JSON.parse(raw);
+    return Array.isArray(parsed)
+      ? parsed.filter((s): s is string => typeof s === "string").slice(0, RECENT_SEARCHES_LIMIT)
+      : [];
+  } catch {
+    return [];
+  }
+}
+
+function saveRecentSearches(userId: string | null | undefined, queries: string[]) {
+  if (typeof window === "undefined") return;
+  try {
+    window.localStorage.setItem(recentSearchesKey(userId), JSON.stringify(queries));
+  } catch {
+    /* ignore quota / privacy-mode errors */
+  }
+}
+
 interface SearchResult {
   id: string;
   title: string;
@@ -18,8 +50,35 @@ export function GlobalSearch() {
   const [open, setOpen] = useState(false);
   const [query, setQuery] = useState("");
   const [selected, setSelected] = useState(0);
+  const [recentSearches, setRecentSearches] = useState<string[]>([]);
   const navigate = useNavigate();
   const { org, user } = useAuth();
+
+  // Hydrate recent searches from localStorage when the user changes (and once on mount).
+  useEffect(() => {
+    setRecentSearches(loadRecentSearches(user?.id));
+  }, [user?.id]);
+
+  const recordRecentSearch = useCallback(
+    (raw: string) => {
+      const trimmed = raw.trim();
+      if (trimmed.length < 2) return;
+      setRecentSearches((prev) => {
+        const next = [trimmed, ...prev.filter((q) => q.toLowerCase() !== trimmed.toLowerCase())].slice(
+          0,
+          RECENT_SEARCHES_LIMIT,
+        );
+        saveRecentSearches(user?.id, next);
+        return next;
+      });
+    },
+    [user?.id],
+  );
+
+  const clearRecentSearches = useCallback(() => {
+    setRecentSearches([]);
+    saveRecentSearches(user?.id, []);
+  }, [user?.id]);
 
   const { data: results = [] } = useQuery({
     queryKey: ["global-search", query, org?.id],
@@ -106,8 +165,14 @@ export function GlobalSearch() {
   }, [open]);
 
   const handleSelect = (result: SearchResult) => {
+    recordRecentSearch(query);
     navigate({ to: result.route });
     setOpen(false);
+  };
+
+  const handleRecentClick = (recent: string) => {
+    setQuery(recent);
+    setSelected(0);
   };
 
   const getIcon = (type: string) => {
@@ -171,16 +236,25 @@ export function GlobalSearch() {
                     setSelected(0);
                   }}
                   onKeyDown={(e) => {
+                    // When the user has typed something, ↑/↓/Enter operate on
+                    // the live search results. When the query is empty, they
+                    // operate on the Recent searches list instead.
+                    const navItems =
+                      query.length === 0 ? recentSearches : results;
                     if (e.key === "ArrowDown") {
                       e.preventDefault();
-                      setSelected((s) => Math.min(s + 1, results.length - 1));
+                      setSelected((s) => Math.min(s + 1, navItems.length - 1));
                     }
                     if (e.key === "ArrowUp") {
                       e.preventDefault();
                       setSelected((s) => Math.max(s - 1, 0));
                     }
-                    if (e.key === "Enter" && results[selected]) {
-                      handleSelect(results[selected]);
+                    if (e.key === "Enter") {
+                      if (query.length === 0 && recentSearches[selected]) {
+                        handleRecentClick(recentSearches[selected]);
+                      } else if (results[selected]) {
+                        handleSelect(results[selected]);
+                      }
                     }
                   }}
                   placeholder="Search tasks, documents, boards..."
@@ -193,15 +267,65 @@ export function GlobalSearch() {
 
               <div className="max-h-[400px] overflow-y-auto p-2">
                 {query.length === 0 ? (
-                  <div className="flex flex-col items-center justify-center py-12 text-center">
-                    <Search className="mb-3 h-10 w-10 text-muted-foreground/40" />
-                    <p className="text-sm text-muted-foreground">
-                      Start typing to search across your workspace
-                    </p>
-                    <p className="mt-1 text-xs text-muted-foreground/60">
-                      Tasks, documents, and boards
-                    </p>
-                  </div>
+                  recentSearches.length > 0 ? (
+                    <div className="space-y-1" data-testid="recent-searches">
+                      <div className="flex items-center justify-between px-3 py-1.5">
+                        <span className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">
+                          Recent searches
+                        </span>
+                        <button
+                          type="button"
+                          onClick={clearRecentSearches}
+                          className="text-[10px] font-medium text-muted-foreground transition hover:text-destructive"
+                          data-testid="clear-recent-searches"
+                        >
+                          Clear
+                        </button>
+                      </div>
+                      {recentSearches.map((recent, index) => (
+                        <button
+                          key={recent}
+                          type="button"
+                          onClick={() => handleRecentClick(recent)}
+                          onMouseEnter={() => setSelected(index)}
+                          className={`group flex w-full items-center gap-3 rounded-lg px-3 py-2.5 text-left transition ${
+                            selected === index
+                              ? "bg-primary-50 text-primary-700"
+                              : "hover:bg-muted"
+                          }`}
+                          data-testid={`recent-search-${recent}`}
+                        >
+                          <div
+                            className={`grid h-8 w-8 shrink-0 place-items-center rounded-lg ${
+                              selected === index
+                                ? "bg-primary-100 text-primary-700"
+                                : "bg-muted text-muted-foreground"
+                            }`}
+                          >
+                            <Clock className="h-4 w-4" />
+                          </div>
+                          <span className="flex-1 truncate text-sm">{recent}</span>
+                          <ArrowRight
+                            className={`h-4 w-4 transition ${
+                              selected === index
+                                ? "text-primary-600 opacity-100"
+                                : "text-muted-foreground opacity-0 group-hover:opacity-100"
+                            }`}
+                          />
+                        </button>
+                      ))}
+                    </div>
+                  ) : (
+                    <div className="flex flex-col items-center justify-center py-12 text-center">
+                      <Search className="mb-3 h-10 w-10 text-muted-foreground/40" />
+                      <p className="text-sm text-muted-foreground">
+                        Start typing to search across your workspace
+                      </p>
+                      <p className="mt-1 text-xs text-muted-foreground/60">
+                        Tasks, documents, and boards
+                      </p>
+                    </div>
+                  )
                 ) : query.length < 2 ? (
                   <div className="py-8 text-center text-sm text-muted-foreground">
                     Type at least 2 characters
@@ -257,7 +381,9 @@ export function GlobalSearch() {
               <div className="flex items-center justify-between border-t border-border bg-muted/30 px-4 py-2 text-xs text-muted-foreground">
                 <span className="flex items-center gap-1">
                   <Clock className="h-3 w-3" />
-                  Recent searches coming soon
+                  {recentSearches.length > 0
+                    ? `${recentSearches.length} recent search${recentSearches.length === 1 ? "" : "es"}`
+                    : "No recent searches yet"}
                 </span>
                 <div className="flex items-center gap-3">
                   <span className="flex items-center gap-1">

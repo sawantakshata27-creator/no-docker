@@ -240,6 +240,17 @@ These are the human owner's exact answers to setup questions. Treat as binding.
 
 ## 11. Changelog (append at the top of the list)
 
+- **2026-01 — `feat/board-rename-new-task-to-new`** (refs **issue #11 — Tasks**,
+  closes the deferred rename note in § 14.5): Renamed the default leftmost column
+  from **`New Task`** to plain **`New`** to match the literal Status-dropdown label
+  from issue #11 comment 1 (`New / In Progress / On Hold / Error / Done`). Touches the
+  two seed paths (`DEFAULT_COLUMNS` in `src/routes/_authenticated/board.tsx` and the
+  onboarding seed in `src/routes/_authenticated/onboarding.tsx`) and the dashboard
+  pie-chart label in `src/routes/_authenticated/dashboard.tsx`. Adds an idempotent SQL
+  migration (`supabase/migrations/20260123120000_rename_new_task_to_new.sql`) that
+  renames any existing `board_columns` row still called `New Task`. No schema change,
+  no task data moved (`column_id` is preserved). Diff = 4 files, ~4 LoC.
+
 - **2026-01 — `docs/agents-mark-status-dropdown-slice-done`** (refs **issue #11 — Tasks**,
   closes § 14.5): Marked the Status-dropdown slice as ✅ DONE in § 14.5 and recorded the
   three slices that closed it (PR #23 `Backlog → New Task`, PR #26 add `Error` column,
@@ -440,10 +451,12 @@ dropdown — no UI code change needed on the select itself):
 Default board column set is now `New Task → In Progress → On Hold → Error → Done` with the
 status-colour mapping from issue #8 (Grey / Blue / Amber / Red / Green).
 
-Deferred (low-value, not blocking — wait for owner steer): the leftmost column is literally
-`New Task` rather than plain `New` as listed in issue #11 comment 1. Kept the longer label
-since it doubles as the empty-board CTA copy. One-line rename in `DEFAULT_COLUMNS` +
-`onboarding.tsx` seed + a tiny SQL migration if the owner ever asks for it.
+Follow-up rename (owner-requested): the leftmost column is now plain **`New`** (matching
+the literal label from issue #11 comment 1). Touched the two seed paths
+(`DEFAULT_COLUMNS` in `board.tsx`, onboarding seed in `onboarding.tsx`), the dashboard
+pie-chart label in `dashboard.tsx`, and added an idempotent SQL migration
+(`supabase/migrations/20260123120000_rename_new_task_to_new.sql`) that renames any
+existing `board_columns` row still called `New Task`.
 
 Out of scope (separate issue #8 slice — don't bundle): the Kanban-board drag-perf fix
 (`Maximum update depth exceeded`).

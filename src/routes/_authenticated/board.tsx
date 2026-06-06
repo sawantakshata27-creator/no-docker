@@ -33,6 +33,7 @@ function BoardPage() {
   const { user, org, membership } = useAuth();
   const queryClient = useQueryClient();
   const [creatingBoard, setCreatingBoard] = useState(false);
+  const [newBoardName, setNewBoardName] = useState("");
 
   const { data: boards, isLoading: boardsLoading } = useQuery({
     queryKey: ["boards", org?.id ?? user?.id],
@@ -97,14 +98,16 @@ function BoardPage() {
 
   const createStarterBoard = async () => {
     if (!user) return;
+    const trimmedName = newBoardName.trim();
     setCreatingBoard(true);
     try {
+      const defaultName = org ? `${org.name} Workflow` : "My Workflow";
+      const boardName = trimmedName || defaultName;
       const keyBase =
-        (org?.name ?? "MAIN")
+        (trimmedName || org?.name || "MAIN")
           .replace(/[^A-Z0-9]/gi, "")
           .slice(0, 4)
           .toUpperCase() || "MAIN";
-      const boardName = org ? `${org.name} Workflow` : "My Workflow";
       const { data: board, error: boardError } = await supabase
         .from("boards")
         .insert({
@@ -148,30 +151,60 @@ function BoardPage() {
   }
 
   if (!boardId || !columns) {
+    const defaultName = org ? `${org.name} Workflow` : "My Workflow";
+    const trimmedName = newBoardName.trim();
     return (
       <div className="card-surface grid min-h-[60vh] place-items-center p-8 text-center">
-        <div className="max-w-md space-y-4">
+        <div className="w-full max-w-md space-y-5">
           <div className="mx-auto grid h-14 w-14 place-items-center rounded-2xl bg-primary-50 text-primary-700">
             <Layers3 className="h-7 w-7" />
           </div>
           <div>
-            <h1 className="text-2xl font-bold">No board yet</h1>
+            <h1 className="text-2xl font-bold">Create your first board</h1>
             <p className="mt-2 text-sm text-muted-foreground">
-              Create a starter board with realistic workflow data so drag-and-drop, task details,
-              and analytics are ready immediately.
+              Name your board — we'll seed it with workflow columns (New → In Progress → On Hold →
+              Error → Done) and a few sample tasks so drag-and-drop, task details, and analytics are
+              ready immediately.
+            </p>
+          </div>
+          <div className="space-y-2 text-left">
+            <label
+              htmlFor="new-board-name"
+              className="block text-xs font-semibold uppercase tracking-wider text-muted-foreground"
+            >
+              Board name
+            </label>
+            <input
+              id="new-board-name"
+              type="text"
+              value={newBoardName}
+              onChange={(e) => setNewBoardName(e.target.value)}
+              onKeyDown={(e) => {
+                if (e.key === "Enter" && !creatingBoard) createStarterBoard();
+              }}
+              placeholder={defaultName}
+              disabled={creatingBoard}
+              className="w-full rounded-md border border-border bg-card px-3 py-2 text-sm outline-none focus:border-primary-400 focus:ring-2 focus:ring-primary-100 disabled:opacity-60"
+              data-testid="new-board-name-input"
+              autoFocus
+              maxLength={60}
+            />
+            <p className="text-xs text-muted-foreground">
+              Leave blank to use <span className="font-medium text-foreground">{defaultName}</span>.
             </p>
           </div>
           <button
             onClick={createStarterBoard}
             disabled={creatingBoard}
             className="btn-primary inline-flex items-center gap-2 disabled:opacity-60"
+            data-testid="create-starter-board-btn"
           >
             {creatingBoard ? (
               <Loader2 className="h-4 w-4 animate-spin" />
             ) : (
               <Plus className="h-4 w-4" />
             )}
-            Create starter board
+            Create board{trimmedName ? ` "${trimmedName}"` : ""}
           </button>
         </div>
       </div>

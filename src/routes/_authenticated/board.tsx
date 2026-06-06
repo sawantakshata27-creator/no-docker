@@ -1,6 +1,7 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useMemo, useState } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { useBoardRealtime } from "@/hooks/useBoardRealtime";
 import { CalendarClock, Layers3, Loader2, Pencil, Plus, Save, X } from "lucide-react";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
@@ -95,6 +96,8 @@ function BoardPage() {
     },
     [boardId, queryClient],
   );
+
+  useBoardRealtime(boardId, refetch);
 
   const createStarterBoard = async () => {
     if (!user) return;

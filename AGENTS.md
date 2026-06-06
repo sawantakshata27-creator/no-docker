@@ -240,6 +240,14 @@ These are the human owner's exact answers to setup questions. Treat as binding.
 
 ## 11. Changelog (append at the top of the list)
 
+- **2026-06 — `feat/board-realtime-sync`** (closes **§ 13.4**): Two users on the same
+  board now see each other's changes without a manual refresh. Added
+  `src/hooks/useBoardRealtime.ts` — subscribes to Supabase Realtime `postgres_changes`
+  on `tasks` and `board_columns` filtered by `board_id`, calls `refetch` (query
+  invalidation) on any remote event. Wired into `board.tsx` with one line after
+  `refetch`. Channel cleaned up on boardId change or unmount. No new deps, no DB
+  changes. 2 files, ~35 LoC.
+
 - **2026-01 — `fix/board-add-card-optimistic`** (refs **issue #8 — Kanban**, closes
   § 13.5): The `Add card` flow on the Kanban board (`KanbanBoard.addTask`) awaited
   the Supabase round-trip before inserting the row into local state, so the column
@@ -408,11 +416,12 @@ auto-batching this can briefly desync the drag snapshot if a drag starts within 
 same tick. Fix: build the next snapshot inside the `setTasks(prev => ...)` updater (or
 inside a `useEffect` that mirrors state into the ref) so the ref is always consistent.
 
-### 13.4 TODO — `feat/board-realtime-sync`
-**Gap:** Two users on the same board don't see each other's drags/edits until refresh.
-Supabase Realtime channel on `tasks` / `board_columns` filtered by `board_id` would
-close this. Keep the patch isolated to a `useBoardRealtime(boardId)` hook called from
-`/_authenticated/board.tsx`. Skip optimistic conflict resolution (out of scope).
+### 13.4 ✅ DONE — `feat/board-realtime-sync`
+Added `src/hooks/useBoardRealtime.ts` — a self-contained hook that subscribes to
+Supabase Realtime `postgres_changes` on `tasks` and `board_columns` filtered by
+`board_id`. Calls `refetch` (query invalidation) on any remote INSERT/UPDATE/DELETE.
+Wired into `board.tsx` with a one-liner after `refetch`. Channel torn down on
+boardId change or unmount. No new deps, no DB changes. 2 files, ~35 LoC.
 
 ### 13.5 ✅ DONE — `fix/board-add-card-optimistic`
 Inserted an optimistic placeholder card on Add (temp id `optimistic-<uuid>`), then

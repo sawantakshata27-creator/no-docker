@@ -22,6 +22,65 @@
 
 ---
 
+## 🧹 SESSION: Issue triage + small PR (January 2026)
+
+**Goal:** Walk every open issue, close the ones whose work has already shipped,
+ship one small focused PR for the leftover cleanup, and leave a clear status
+trail on the multi-item umbrella issue.
+
+### PR merged this session
+- **PR #47** — `refactor(task-model): rename seed pool key backlog -> new (refs #46)`
+  Renames `titlePools.backlog` → `titlePools.new` in `src/lib/task-model.ts` and
+  the single call site in `buildSeedTasks`. Last user-visible-ish reference to
+  *Backlog* in the codebase. No behavior change. (Squash-merged.)
+
+### Issues closed (commented before closing — see issue threads for the receipts)
+- **#4 Login page** — magic link was removed in PR #41; hero copy, background,
+  Google OAuth, email+password and forgot-password all live.
+- **#5 Dashboard / notifications** — `<NotificationsPanel />` is mounted in
+  `Topbar.tsx` and functional (derived feed, badge, mark-read in localStorage,
+  click-through navigation). Dashboard chart correctness fixed in PR #43.
+- **#6 Core logic E2E** — auth, multi-tenant org/membership, board lifecycle,
+  optimistic task add, drag persistence, search, metrics all wired and fixed
+  across the recent PR batch.
+- **#8 Kanban "create stuck"** — fixed by PR #45 (optimistic placeholder,
+  background insert, in-place swap, rollback on failure). Column rename also
+  done (migrations 20260120 + 20260123, PRs #35, #47).
+- **#17 Searchbar** — already fully implemented: scoped queries (PR #32),
+  Esc/click-outside/⌘K open-close, per-user recent searches in localStorage
+  with ↑↓ Enter navigation when empty (PR #25).
+
+### Issues left OPEN with status comment
+- **#16 Suggestion — shareable read-only `/board/:id?public=1`** — feature
+  request, not started.
+- **#46 Multi-item Task list** — added a per-row status table to the issue
+  thread. Remaining work:
+  - 🔲 *Files count tab* — needs the owner to clarify scope (which tab? files
+    on task drawer, doc-count per board, or sidebar badge?).
+  - 🟡 *Automatic calculation* — process-productivity is wired
+    (`BoardProductivityMetrics.tsx`, PR #38). May or may not be what was asked;
+    waiting on a concrete example.
+  - 🟡 *Drag-drop delay* — `PointerSensor` activation distance is `6px` today.
+    Will lower only after a screen recording confirms which stage feels slow
+    (activation vs. drop animation vs. post-drop refetch).
+  - 🔲 *Region-wise delivery dates (EMEA / APAC / AMER)* — schema + UI work,
+    will land as a dedicated PR once requirements (one date per region? per
+    board × region?) are confirmed.
+
+### Files touched this session
+- `src/lib/task-model.ts` — `titlePools` key rename (PR #47).
+- `EMERGENT_HANDOVER.md` — this section (current PR).
+
+### Next agent
+If the user asks to push the remaining #46 items forward:
+1. Get a concrete spec for *Files count tab* and *Automatic calculation*.
+2. For region-wise delivery dates, add a `board_region_delivery_dates`
+   table keyed by `(board_id, region)` (or a JSONB column on `boards`),
+   migrate, then surface in `routes/_authenticated/board.tsx` next to the
+   existing `scheduled_delivery_date` editor.
+
+---
+
 ## 🎯 RECENT CHANGES (January 2026)
 
 ### Commit: 961124f - Sidebar Cutout Effect Fix

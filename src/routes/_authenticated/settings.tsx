@@ -1,6 +1,7 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useRef, useMemo, useState } from "react";
-import { Building2, Camera, Loader2, Lock, Moon, Sun, User } from "lucide-react";
+import { useQuery } from "@tanstack/react-query";
+import { Building2, Camera, ClipboardList, Loader2, Lock, Moon, Sun, User } from "lucide-react";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/lib/auth-store";
@@ -11,7 +12,7 @@ export const Route = createFileRoute("/_authenticated/settings")({ component: Se
 
 function SettingsPage() {
   const { user, profile, org, membership, refreshProfile } = useAuth();
-  const [tab, setTab] = useState<"profile" | "workspace" | "security">("profile");
+  const [tab, setTab] = useState<"profile" | "workspace" | "security" | "audit">("profile");
 
   return (
     <div className="space-y-6">
@@ -26,6 +27,7 @@ function SettingsPage() {
             { v: "profile", l: "Profile", i: User },
             { v: "workspace", l: "Workspace", i: Building2 },
             { v: "security", l: "Security", i: Lock },
+            ...(membership?.role === "owner" || membership?.role === "admin" ? [{ v: "audit", l: "Audit Log", i: ClipboardList }] : []),
           ].map((tabOption) => (
             <button
               key={tabOption.v}
@@ -54,6 +56,7 @@ function SettingsPage() {
             <WorkspaceTab org={org} role={membership?.role ?? "member"} onSaved={refreshProfile} />
           )}
           {tab === "security" && <SecurityTab email={user?.email ?? ""} />}
+          {tab === "audit" && <AuditLogTab orgId={org?.id ?? null} userId={user?.id ?? ""} />}
         </div>
       </div>
     </div>
@@ -409,6 +412,90 @@ function SecurityTab({ email }: { email: string }) {
   );
 }
 
+function AuditLogTab({ orgId, userId }: { orgId: string | null; userId: string }) {
+  const [entityType, setEntityType] = useState<string>("all");
+  const [page, setPage] = useState(0);
+  const PAGE_SIZE = 20;
+
+  const { data: logs, isLoading } = useQuery({
+    queryKey: ["audit-log", orgId, userId, entityType, page],
+    queryFn: async () => {
+      let q = supabase
+        .from("audit_log")
+        .select("id, entity_type, entity_id, action, old_value, new_value, performed_by, created_at, profiles:performed_by(full_name)")
+        .order("created_at", { ascending: false })
+        .range(page * PAGE_SIZE, (page + 1) * PAGE_SIZE - 1);
+      if (entityType !== "all") q = q.eq("entity_type", entityType);
+      const { data, error } = await q;
+      if (error) throw error;
+      return (data ?? []) as any[];
+    },
+  });
+
+  const ACTION_COLOR: Record<string, string> = {
+    created: "bg-emerald-50 text-emerald-700",
+    updated: "bg-blue-50 text-blue-700",
+    deleted: "bg-red-50 text-red-700",
+    column_changed: "bg-violet-50 text-violet-700",
+    assignee_changed: "bg-amber-50 text-amber-700",
+    budget_updated: "bg-cyan-50 text-cyan-700",
+    role_changed: "bg-orange-50 text-orange-700",
+  };
+
+  return (
+    <div className="space-y-5">
+      <div className="flex flex-wrap items-center justify-between gap-3">
+        <h2 className="text-lg font-semibold">Audit Log</h2>
+        <div className="flex items-center gap-2">
+          <label className="text-xs text-muted-foreground">Filter:</label>
+          <select value={entityType} onChange={(e) => { setEntityType(e.target.value); setPage(0); }}
+            className="input-field py-1.5 text-sm">
+            <option value="all">All</option>
+            <option value="task">Tasks</option>
+            <option value="board">Boards</option>
+            <option value="member">Members</option>
+          </select>
+        </div>
+      </div>
+
+      {isLoading ? (
+        <div className="flex justify-center py-12"><Loader2 className="h-6 w-6 animate-spin text-primary-600" /></div>
+      ) : (logs ?? []).length === 0 ? (
+        <p className="py-10 text-center text-sm text-muted-foreground">No audit entries yet.</p>
+      ) : (
+        <div className="divide-y divide-border rounded-xl border border-border overflow-hidden">
+          {(logs ?? []).map((log: any) => (
+            <div key={log.id} className="flex flex-col gap-1 bg-card px-4 py-3 text-sm hover:bg-muted/40 transition-colors">
+              <div className="flex flex-wrap items-center gap-2">
+                <span className={`rounded-full px-2 py-0.5 text-[11px] font-medium ${ACTION_COLOR[log.action] ?? "bg-muted text-foreground"}`}>{log.action}</span>
+                <span className="font-medium text-foreground capitalize">{log.entity_type}</span>
+                <span className="font-mono text-xs text-muted-foreground">{(log.entity_id as string).slice(0, 8)}…</span>
+                <span className="ml-auto text-xs text-muted-foreground">{new Date(log.created_at).toLocaleString()}</span>
+              </div>
+              <div className="text-xs text-muted-foreground">
+                by <span className="font-medium text-foreground">{(log.profiles as any)?.full_name ?? log.performed_by?.slice(0, 8) ?? "system"}</span>
+                {log.action === "column_changed" && log.old_value && log.new_value ? (
+                  <> · column: <code className="rounded bg-muted px-1">{(log.old_value as any).column_id?.slice(0,8)}</code> → <code className="rounded bg-muted px-1">{(log.new_value as any).column_id?.slice(0,8)}</code></>
+                ) : null}
+                {log.action === "assignee_changed" && log.new_value ? (
+                  <> · assignee → <code className="rounded bg-muted px-1">{(log.new_value as any).assignee_id?.slice(0,8) ?? "unassigned"}</code></>
+                ) : null}
+              </div>
+            </div>
+          ))}
+        </div>
+      )}
+
+      <div className="flex items-center justify-between text-xs text-muted-foreground">
+        <span>Page {page + 1}</span>
+        <div className="flex gap-2">
+          {page > 0 && <button onClick={() => setPage(p => p - 1)} className="rounded-lg border px-3 py-1.5 hover:bg-muted">Previous</button>}
+          {(logs?.length ?? 0) === PAGE_SIZE && <button onClick={() => setPage(p => p + 1)} className="rounded-lg border px-3 py-1.5 hover:bg-muted">Next</button>}
+        </div>
+      </div>
+    </div>
+  );
+}
 function Field({ label, children }: { label: string; children: React.ReactNode }) {
   return (
     <label className="block">

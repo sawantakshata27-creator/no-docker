@@ -1,5 +1,6 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
+import { z } from "zod";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/lib/auth-store";
@@ -8,10 +9,18 @@ import { toast } from "sonner";
 import { TaskDetailsDrawer } from "@/components/tasks/TaskDetailsDrawer";
 import { type TaskRecord, type ColumnRecord, PRIORITY_OPTIONS } from "@/lib/task-model";
 
-export const Route = createFileRoute("/_authenticated/tasks")({ component: TasksPage });
+const searchSchema = z.object({
+  task: z.string().optional(),
+});
+
+export const Route = createFileRoute("/_authenticated/tasks")({
+  validateSearch: searchSchema,
+  component: TasksPage,
+});
 
 function TasksPage() {
   const { org, user } = useAuth();
+  const { task: taskFromSearch } = Route.useSearch();
   const qc = useQueryClient();
   const [q, setQ] = useState("");
   const [priority, setPriority] = useState<string>("all");
@@ -123,6 +132,13 @@ function TasksPage() {
     if (!selectedTask) return [];
     return cols.filter((c) => c.board_id === selectedTask.board_id);
   }, [cols, selectedTask?.board_id]);
+
+  // Open the drawer when arriving from global search with ?task=<id>.
+  useEffect(() => {
+    if (!taskFromSearch || isLoading) return;
+    const exists = tasks.some((t) => t.id === taskFromSearch);
+    if (exists) setSelectedTaskId(taskFromSearch);
+  }, [taskFromSearch, isLoading, tasks]);
 
   const patchTask = (taskId: string, patch: Partial<TaskRecord>) => {
     setPatches((prev) => ({ ...prev, [taskId]: { ...(prev[taskId] ?? {}), ...patch } }));

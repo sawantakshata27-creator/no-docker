@@ -18,29 +18,41 @@ type StageMetric = {
   actual: number | null;
 };
 
-// Files-per-hour computed from completed tasks:
-//   actual = completed_count / sum(completed_at - created_at, in hours)
-// Tasks without both timestamps are excluded. Stages with zero completions
-// render as "—" (no fake throughput).
+// Files-per-hour = completion throughput per stage.
+//
+//   actual = completed_count / hours_between_first_and_latest_completion
+//
+// Previously we divided by sum(completed_at - created_at), which conflates
+// per-task latency (a backlog item created days before it was finished) with
+// throughput, and crushes the rate toward zero for any board with old tasks
+// (see issue #30: "0.0 / 5.6 files/hr · 2 done"). Spanning consecutive
+// completions instead measures how fast files actually leave the stage.
+//
+// Tasks without a valid `completed_at` are excluded. Stages with fewer than
+// two completions render as "—" (one data point can't define a rate).
 function computeMetrics(tasks: TaskRecord[]): StageMetric[] {
-  const buckets: Record<string, { completed: number; hours: number }> = {};
-  for (const stage of DEFAULT_PROCESS_STAGES) buckets[stage] = { completed: 0, hours: 0 };
+  const completionTimes: Record<string, number[]> = {};
+  for (const stage of DEFAULT_PROCESS_STAGES) completionTimes[stage] = [];
 
   for (const task of tasks) {
     const stage = task.process_stage as (typeof DEFAULT_PROCESS_STAGES)[number] | null;
-    if (!stage || !(stage in buckets)) continue;
-    if (!task.completed_at || !task.created_at) continue;
-    const startMs = new Date(task.created_at).getTime();
-    const endMs = new Date(task.completed_at).getTime();
-    if (!Number.isFinite(startMs) || !Number.isFinite(endMs) || endMs <= startMs) continue;
-    buckets[stage].completed += 1;
-    buckets[stage].hours += (endMs - startMs) / 3_600_000;
+    if (!stage || !(stage in completionTimes)) continue;
+    if (!task.completed_at) continue;
+    const t = new Date(task.completed_at).getTime();
+    if (!Number.isFinite(t)) continue;
+    completionTimes[stage].push(t);
   }
 
   return DEFAULT_PROCESS_STAGES.map((stage) => {
-    const { completed, hours } = buckets[stage];
-    const actual = completed > 0 && hours > 0 ? completed / hours : null;
-    return { stage, target: PROCESS_PRODUCTIVITY_TARGETS[stage], completed, hours, actual };
+    const times = completionTimes[stage].sort((a, b) => a - b);
+    const completed = times.length;
+    const target = PROCESS_PRODUCTIVITY_TARGETS[stage];
+    if (completed < 2) {
+      return { stage, target, completed, hours: 0, actual: null };
+    }
+    const spanHours = (times[times.length - 1] - times[0]) / 3_600_000;
+    const actual = spanHours > 0 ? completed / spanHours : null;
+    return { stage, target, completed, hours: spanHours, actual };
   });
 }
 
@@ -72,7 +84,7 @@ export function BoardProductivityMetrics({ tasks }: BoardProductivityMetricsProp
         <div>
           <h2 className="text-sm font-semibold">Process productivity</h2>
           <p className="text-[11px] text-muted-foreground">
-            Files completed per hour vs target throughput.
+            Files completed per hour vs target — measured across each stage’s completion window.
           </p>
         </div>
       </header>
@@ -100,7 +112,9 @@ export function BoardProductivityMetrics({ tasks }: BoardProductivityMetricsProp
               <div className="mt-1 text-[11px] opacity-80">
                 {m.completed === 0
                   ? "No completions yet"
-                  : `${m.completed} done · ${pct ?? "—"}% of target`}
+                  : m.actual == null
+                    ? `${m.completed} done · need 2+ to rate`
+                    : `${m.completed} done · ${pct ?? "—"}% of target`}
               </div>
             </div>
           );

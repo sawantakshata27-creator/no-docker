@@ -240,6 +240,18 @@ These are the human owner's exact answers to setup questions. Treat as binding.
 
 ## 11. Changelog (append at the top of the list)
 
+- **2026-01 — `fix/board-productivity-completion-span`** (refs **issue #30 — Check
+  working of process productivity**): Fix the board-level Process productivity widget
+  showing `0.0 / 5.6 files/hr · 2 done · 0% of target`. The previous formula divided
+  completion count by `sum(completed_at - created_at)` per task, which conflates
+  per-task **latency** (backlog age) with **throughput**: a task created two weeks
+  before being finished crushed the denominator and pinned the rate to ~0. New
+  definition: `actual = completed_count / hours_between_first_and_latest_completion`
+  in that stage, which actually measures how fast files leave the stage. Stages with
+  fewer than two completions render as "—" with a `${n} done · need 2+ to rate`
+  caption (one data point can't define a rate). Single-file change to
+  `src/components/board/BoardProductivityMetrics.tsx`, no schema change, no new deps.
+
 - **2026-01 — `docs/agents-mark-status-dropdown-slice-done`** (refs **issue #11 — Tasks**,
   closes § 14.5): Marked the Status-dropdown slice as ✅ DONE in § 14.5 and recorded the
   three slices that closed it (PR #23 `Backlog → New Task`, PR #26 add `Error` column,

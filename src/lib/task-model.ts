@@ -35,6 +35,27 @@ export const DEFAULT_PROCESS_STAGES = [
   "Adjustment",
 ] as const;
 
+// Owner-specified throughput targets (files per hour) for each process stage.
+// Used to (a) surface the expected pace inside the Task drawer next to the
+// Process dropdown, and (b) compute actual vs target productivity from
+// completed tasks in board-level metrics widgets. See issue #11 — Tasks
+// (process-wise productivity metrics).
+export const PROCESS_PRODUCTIVITY_TARGETS: Record<(typeof DEFAULT_PROCESS_STAGES)[number], number> =
+  {
+    "Sign Creation": 5.6,
+    "Pre-processing": 15,
+    Association: 13,
+    Adjustment: 228,
+  };
+
+export function productivityTargetFor(stage: string | null | undefined): number | null {
+  if (!stage) return null;
+  if (stage in PROCESS_PRODUCTIVITY_TARGETS) {
+    return PROCESS_PRODUCTIVITY_TARGETS[stage as (typeof DEFAULT_PROCESS_STAGES)[number]];
+  }
+  return null;
+}
+
 export function priorityClass(priority: string) {
   if (priority === "high") return "bg-red-50 text-red-600 border-red-100";
   if (priority === "medium") return "bg-amber-50 text-amber-600 border-amber-100";

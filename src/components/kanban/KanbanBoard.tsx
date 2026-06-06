@@ -245,13 +245,16 @@ export function KanbanBoard({ boardId, userId, columns, tasks: initialTasks, onC
     // `position` gaps after refetch. Without this, deletes left holes in the
     // position sequence on the backend (see AGENTS.md § 13.2).
     const deletedTask = tasks.find((task) => task.id === taskId);
-    const reindexed = reindexTasks(
-      tasks.filter((task) => task.id !== taskId),
-      orderedColumns,
-    );
 
-    setTasks(reindexed);
-    dragSnapshotRef.current = reindexed;
+    let reindexed: TaskRecord[] = [];
+    setTasks((prev) => {
+      reindexed = reindexTasks(
+        prev.filter((task) => task.id !== taskId),
+        orderedColumns,
+      );
+      dragSnapshotRef.current = reindexed;
+      return reindexed;
+    });
     setSelectedTaskId((current) => (current === taskId ? null : current));
 
     const affectedColumnId = deletedTask?.column_id;

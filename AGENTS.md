@@ -240,6 +240,14 @@ These are the human owner's exact answers to setup questions. Treat as binding.
 
 ## 11. Changelog (append at the top of the list)
 
+- **2026-06 — `fix/board-stale-snapshot-ref-on-remove`** (closes **§ 13.3**): `removeTask`
+  was computing `reindexed` from closure-captured `tasks` and assigning
+  `dragSnapshotRef.current` outside the React updater. With React 19 auto-batching, a drag
+  starting in the same tick could read a stale snapshot. Moved both `reindexTasks` and the
+  ref assignment inside `setTasks(prev => ...)` so they're always consistent with the
+  committed state. `addTask` was already correct. Single-file change
+  (`KanbanBoard.tsx`, ~8 LoC).
+
 - **2026-01 — `fix/board-add-card-optimistic`** (refs **issue #8 — Kanban**, closes
   § 13.5): The `Add card` flow on the Kanban board (`KanbanBoard.addTask`) awaited
   the Supabase round-trip before inserting the row into local state, so the column
@@ -401,12 +409,12 @@ Use `max(position)+1` when adding a card. Shipped (see § 11).
 ### 13.2 ✅ DONE — `fix/board-reindex-positions-on-delete`
 Persist reindexed positions to Supabase after a task delete. Shipped (see § 11).
 
-### 13.3 TODO — `fix/board-stale-snapshot-ref-on-add`
-**Symptom:** In `KanbanBoard.addTask` / `removeTask`, `dragSnapshotRef.current` is
-built from the closure-captured `tasks`, not from the updater's `prev`. With React 19
-auto-batching this can briefly desync the drag snapshot if a drag starts within the
-same tick. Fix: build the next snapshot inside the `setTasks(prev => ...)` updater (or
-inside a `useEffect` that mirrors state into the ref) so the ref is always consistent.
+### 13.3 ✅ DONE — `fix/board-stale-snapshot-ref-on-remove`
+`removeTask` was building `reindexed` from closure-captured `tasks` and then setting
+`dragSnapshotRef.current = reindexed` outside the updater. Fixed: moved both
+`reindexTasks` and `dragSnapshotRef.current = ...` inside the `setTasks(prev => ...)`
+updater so the ref is always consistent with React 19 auto-batching. `addTask` was
+already correct (fixed earlier in PR #40).
 
 ### 13.4 TODO — `feat/board-realtime-sync`
 **Gap:** Two users on the same board don't see each other's drags/edits until refresh.

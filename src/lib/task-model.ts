@@ -63,8 +63,14 @@ export function priorityClass(priority: string) {
   return "bg-emerald-50 text-emerald-600 border-emerald-100";
 }
 
+// Seed-task title pools keyed by column role rather than the legacy column name.
+// The leftmost column was renamed Backlog → New Task → New (see migrations
+// 20260120120000_rename_backlog_to_new_task.sql and
+// 20260123120000_rename_new_task_to_new.sql, plus issues #11 and #46). Keeping
+// the internal key in sync with the user-visible "New" wording prevents fresh
+// readers from thinking we still ship a "Backlog" column.
 const titlePools = {
-  backlog: [
+  new: [
     "Validate signer packet batch",
     "Queue OCR cleanup for intake set",
     "Review missing page exceptions",
@@ -99,7 +105,7 @@ export function buildSeedTasks(columns: ColumnRecord[], boardId: string, userId:
     const count = columnIndex === 0 ? 7 : columnIndex === sortedColumns.length - 1 ? 4 : 6;
     const pool =
       columnIndex === 0
-        ? titlePools.backlog
+        ? titlePools.new
         : columnIndex === sortedColumns.length - 1
           ? titlePools.review
           : titlePools.active;

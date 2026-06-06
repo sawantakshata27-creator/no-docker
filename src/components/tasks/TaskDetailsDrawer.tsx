@@ -1,7 +1,7 @@
-import { useEffect, useMemo, useState } from "react";
-import { useQuery } from "@tanstack/react-query";
+import { useEffect, useMemo, useRef, useState } from "react";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useAuth } from "@/lib/auth-store";
-import { CalendarDays, Hash, Save, Trash2, UserCircle2 } from "lucide-react";
+import { CalendarDays, Hash, MessageSquare, Save, Send, Trash2, UserCircle2 } from "lucide-react";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 // Issue #22 item 2: surface task details as a centered modal instead of a
@@ -442,5 +442,131 @@ function Field({ label, children }: { label: string; children: React.ReactNode }
       <span className="text-xs font-medium text-muted-foreground">{label}</span>
       {children}
     </label>
+  );
+}
+
+// ── TaskComments ─────────────────────────────────────────────────────────────
+
+type TaskComment = {
+  id: string;
+  task_id: string;
+  user_id: string;
+  body: string;
+  created_at: string;
+  profiles?: { full_name: string | null; email: string | null } | null;
+};
+
+function TaskComments({ taskId }: { taskId: string }) {
+  const { user, membership } = useAuth();
+  const qc = useQueryClient();
+  const [body, setBody] = useState("");
+  const [submitting, setSubmitting] = useState(false);
+  const bottomRef = useRef<HTMLDivElement>(null);
+
+  const { data: comments = [] } = useQuery({
+    queryKey: ["task-comments", taskId],
+    queryFn: async () => {
+      const { data } = await supabase
+        .from("task_comments")
+        .select("*, profiles(full_name, email)")
+        .eq("task_id", taskId)
+        .order("created_at", { ascending: true });
+      return (data ?? []) as TaskComment[];
+    },
+  });
+
+  // Real-time subscription
+  useEffect(() => {
+    const channel = supabase
+      .channel(`task-comments:${taskId}`)
+      .on(
+        "postgres_changes",
+        { event: "*", schema: "public", table: "task_comments", filter: `task_id=eq.${taskId}` },
+        () => { qc.invalidateQueries({ queryKey: ["task-comments", taskId] }); }
+      )
+      .subscribe();
+    return () => { supabase.removeChannel(channel); };
+  }, [taskId, qc]);
+
+  useEffect(() => {
+    bottomRef.current?.scrollIntoView({ behavior: "smooth" });
+  }, [comments.length]);
+
+  const canDelete = (comment: TaskComment) =>
+    comment.user_id === user?.id || membership?.role === "owner" || membership?.role === "admin";
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!body.trim() || !user) return;
+    setSubmitting(true);
+    await supabase.from("task_comments").insert({ task_id: taskId, user_id: user.id, body: body.trim() });
+    setBody("");
+    qc.invalidateQueries({ queryKey: ["task-comments", taskId] });
+    setSubmitting(false);
+  };
+
+  const handleDelete = async (id: string) => {
+    await supabase.from("task_comments").delete().eq("id", id);
+    qc.invalidateQueries({ queryKey: ["task-comments", taskId] });
+  };
+
+  return (
+    <div className="border-t border-border px-6 py-4">
+      <div className="mb-3 flex items-center gap-2 text-sm font-semibold">
+        <MessageSquare className="h-4 w-4 text-muted-foreground" />
+        Comments {comments.length > 0 && <span className="text-xs font-normal text-muted-foreground">({comments.length})</span>}
+      </div>
+      <div className="mb-3 max-h-52 space-y-2.5 overflow-y-auto">
+        {comments.length === 0 && (
+          <p className="py-4 text-center text-xs text-muted-foreground">No comments yet. Be the first!</p>
+        )}
+        {comments.map((c) => {
+          const name = c.profiles?.full_name || c.profiles?.email || "Unknown";
+          const initials = name.slice(0, 2).toUpperCase();
+          const ts = new Date(c.created_at).toLocaleString(undefined, { month: "short", day: "numeric", hour: "2-digit", minute: "2-digit" });
+          return (
+            <div key={c.id} className="group flex gap-2.5">
+              <div className="grid h-7 w-7 shrink-0 place-items-center rounded-full bg-primary-100 text-[10px] font-bold text-primary-700">
+                {initials}
+              </div>
+              <div className="flex-1 rounded-xl bg-muted/40 px-3 py-2">
+                <div className="flex items-baseline justify-between gap-2">
+                  <span className="text-xs font-semibold">{name}</span>
+                  <span className="text-[10px] text-muted-foreground">{ts}</span>
+                </div>
+                <p className="mt-0.5 whitespace-pre-wrap text-xs text-foreground">{c.body}</p>
+              </div>
+              {canDelete(c) && (
+                <button
+                  onClick={() => handleDelete(c.id)}
+                  className="self-start pt-2 opacity-0 transition group-hover:opacity-100 hover:text-destructive"
+                >
+                  <Trash2 className="h-3 w-3" />
+                </button>
+              )}
+            </div>
+          );
+        })}
+        <div ref={bottomRef} />
+      </div>
+      <form onSubmit={handleSubmit} className="flex gap-2">
+        <input
+          value={body}
+          onChange={(e) => setBody(e.target.value)}
+          placeholder="Add a comment…"
+          className="input-field flex-1 text-sm"
+          disabled={submitting}
+          data-testid="comment-input"
+        />
+        <button
+          type="submit"
+          disabled={submitting || !body.trim()}
+          className="grid h-9 w-9 shrink-0 place-items-center rounded-lg bg-primary-600 text-white hover:bg-primary-700 disabled:opacity-40"
+          data-testid="comment-submit"
+        >
+          <Send className="h-4 w-4" />
+        </button>
+      </form>
+    </div>
   );
 }

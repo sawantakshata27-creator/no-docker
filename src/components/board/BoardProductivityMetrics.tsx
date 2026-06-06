@@ -14,33 +14,36 @@ type StageMetric = {
   stage: (typeof DEFAULT_PROCESS_STAGES)[number];
   target: number;
   completed: number;
-  hours: number;
   actual: number | null;
 };
 
-// Files-per-hour computed from completed tasks:
-//   actual = completed_count / sum(completed_at - created_at, in hours)
-// Tasks without both timestamps are excluded. Stages with zero completions
-// render as "—" (no fake throughput).
+// Files-per-hour computed from a rolling 24-hour window:
+//   actual = (tasks completed in last 24h at this stage) / 24
+// This replaces the older "sum of per-task lifetimes" denominator, which
+// over-counted idle queue time and yielded near-zero throughput even when
+// the team was active (see issue #30). Stages with zero recent completions
+// render as "—" (no fake throughput, no division-by-zero).
+const ROLLING_WINDOW_HOURS = 24;
+
 function computeMetrics(tasks: TaskRecord[]): StageMetric[] {
-  const buckets: Record<string, { completed: number; hours: number }> = {};
-  for (const stage of DEFAULT_PROCESS_STAGES) buckets[stage] = { completed: 0, hours: 0 };
+  const buckets: Record<string, number> = {};
+  for (const stage of DEFAULT_PROCESS_STAGES) buckets[stage] = 0;
+
+  const cutoffMs = Date.now() - ROLLING_WINDOW_HOURS * 3_600_000;
 
   for (const task of tasks) {
     const stage = task.process_stage as (typeof DEFAULT_PROCESS_STAGES)[number] | null;
     if (!stage || !(stage in buckets)) continue;
-    if (!task.completed_at || !task.created_at) continue;
-    const startMs = new Date(task.created_at).getTime();
+    if (!task.completed_at) continue;
     const endMs = new Date(task.completed_at).getTime();
-    if (!Number.isFinite(startMs) || !Number.isFinite(endMs) || endMs <= startMs) continue;
-    buckets[stage].completed += 1;
-    buckets[stage].hours += (endMs - startMs) / 3_600_000;
+    if (!Number.isFinite(endMs) || endMs < cutoffMs) continue;
+    buckets[stage] += 1;
   }
 
   return DEFAULT_PROCESS_STAGES.map((stage) => {
-    const { completed, hours } = buckets[stage];
-    const actual = completed > 0 && hours > 0 ? completed / hours : null;
-    return { stage, target: PROCESS_PRODUCTIVITY_TARGETS[stage], completed, hours, actual };
+    const completed = buckets[stage];
+    const actual = completed > 0 ? completed / ROLLING_WINDOW_HOURS : null;
+    return { stage, target: PROCESS_PRODUCTIVITY_TARGETS[stage], completed, actual };
   });
 }
 
@@ -72,7 +75,7 @@ export function BoardProductivityMetrics({ tasks }: BoardProductivityMetricsProp
         <div>
           <h2 className="text-sm font-semibold">Process productivity</h2>
           <p className="text-[11px] text-muted-foreground">
-            Files completed per hour vs target throughput.
+            Files completed per hour over the last 24 hours, vs target throughput.
           </p>
         </div>
       </header>
@@ -99,8 +102,8 @@ export function BoardProductivityMetrics({ tasks }: BoardProductivityMetricsProp
               </div>
               <div className="mt-1 text-[11px] opacity-80">
                 {m.completed === 0
-                  ? "No completions yet"
-                  : `${m.completed} done · ${pct ?? "—"}% of target`}
+                  ? "No completions in last 24h"
+                  : `${m.completed} done in last 24h · ${pct ?? "—"}% of target`}
               </div>
             </div>
           );

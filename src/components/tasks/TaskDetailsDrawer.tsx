@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
-import { CalendarDays, Save, Trash2 } from "lucide-react";
+import { CalendarDays, Hash, Save, Trash2 } from "lucide-react";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 // Issue #22 item 2: surface task details as a centered modal instead of a
@@ -39,6 +39,7 @@ const EDITABLE_FIELDS: (keyof TaskRecord)[] = [
   "due_date",
   "column_id",
   "completed_at",
+  "files_count",
 ];
 
 function pickEditable(task: TaskRecord): Partial<TaskRecord> {
@@ -302,6 +303,45 @@ export function TaskDetailsDrawer({
                     data-testid="task-due-date-input"
                   />
                 </div>
+              </Field>
+
+              <Field label="Files count">
+                <div className="relative">
+                  <Hash className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+                  <input
+                    type="number"
+                    min="0"
+                    step="1"
+                    className="input-field pl-9"
+                    value={draft.files_count ?? ""}
+                    onChange={(event) =>
+                      patchDraft({
+                        files_count: event.target.value === "" ? null : parseInt(event.target.value, 10),
+                      })
+                    }
+                    placeholder="0"
+                    data-testid="task-files-count-input"
+                  />
+                </div>
+                {(() => {
+                  const count = draft.files_count;
+                  const target = productivityTargetFor(draft.process_stage);
+                  if (!count || count <= 0 || !draft.created_at) return null;
+                  const hoursElapsed = (Date.now() - new Date(draft.created_at).getTime()) / 3600000;
+                  if (hoursElapsed <= 0) return null;
+                  const actual = (count / hoursElapsed).toFixed(1);
+                  const pct = target ? Math.round((count / hoursElapsed / target) * 100) : null;
+                  return (
+                    <span className="mt-1 inline-flex items-center gap-1 text-[11px] text-muted-foreground" data-testid="task-productivity-actual">
+                      Actual: <span className="font-medium text-foreground">{actual} files/hr</span>
+                      {pct != null && (
+                        <span className={`ml-1 rounded px-1 py-0.5 text-[10px] font-semibold ${pct >= 100 ? "bg-emerald-50 text-emerald-700" : pct >= 70 ? "bg-amber-50 text-amber-700" : "bg-red-50 text-red-700"}`}>
+                          {pct}% of target
+                        </span>
+                      )}
+                    </span>
+                  );
+                })()}
               </Field>
             </div>
 

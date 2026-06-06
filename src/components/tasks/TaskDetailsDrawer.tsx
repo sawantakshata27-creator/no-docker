@@ -14,6 +14,7 @@ import {
   type ColumnRecord,
   type TaskRecord,
   DEFAULT_PROCESS_STAGES,
+  productivityTargetFor,
 } from "@/lib/task-model";
 
 interface TaskDetailsDrawerProps {
@@ -260,6 +261,19 @@ export function TaskDetailsDrawer({
                     <option value={draft.process_stage}>{draft.process_stage} (legacy)</option>
                   ) : null}
                 </select>
+                {(() => {
+                  const target = productivityTargetFor(draft.process_stage);
+                  if (target == null) return null;
+                  return (
+                    <span
+                      className="mt-1 inline-flex items-center gap-1 text-[11px] text-muted-foreground"
+                      data-testid="task-process-productivity-target"
+                    >
+                      <span className="font-medium text-foreground">Target:</span>
+                      {target} files/hr
+                    </span>
+                  );
+                })()}
               </Field>
 
               <Field label="Due date">

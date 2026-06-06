@@ -240,6 +240,24 @@ These are the human owner's exact answers to setup questions. Treat as binding.
 
 ## 11. Changelog (append at the top of the list)
 
+- **2026-01 — `feat/board-process-productivity-metrics`** (refs **issue #11 — Tasks**, part 3b/N
+  of the "Task Module Updates" sub-issue, PR #19): Added a board-level **Process productivity**
+  widget rendered above the Kanban. For each of the 4 tracked stages it shows files-per-hour
+  actual vs the owner-specified targets (5.6 / 15 / 13 / 228). Actual is computed locally from
+  tasks already fetched by `board.tsx` — `actual = completed_count / sum(completed_at - created_at)`
+  in hours, per `process_stage`. Stages with zero completions render `—`; card tone is green
+  ≥100%, amber 70–99%, red <70%. New self-contained component
+  `src/components/board/BoardProductivityMetrics.tsx` (~110 LoC) + 2-line wire-in in
+  `src/routes/_authenticated/board.tsx`. No new query, no DB changes, no new deps.
+
+- **2026-01 — `feat/task-process-productivity-targets`** (refs **issue #11 — Tasks**, part 3a/N
+  of the "Task Module Updates" sub-issue, PR #18): Added `PROCESS_PRODUCTIVITY_TARGETS` constant
+  + `productivityTargetFor()` helper in `src/lib/task-model.ts` (Sign Creation 5.6, Pre-processing
+  15, Association 13, Adjustment 228 files/hr). `TaskDetailsDrawer` now renders
+  `Target: N files/hr` inline below the Process select whenever a known stage is picked.
+  Single source of truth — reused by the board-level metrics widget in part 3b/N. No DB change.
+  Diff = 2 files, +35 LoC.
+
 - **2026-01 — `chore/delete-landing-page`** (closes **issue #12 — Delete landing page**,
   PR #15): Removed the 757-LoC marketing landing page that lived at `/`. The route is
   now a thin redirect: signed-in users → `/dashboard`, everyone else → `/login`. Also
@@ -333,14 +351,47 @@ actively misleads code-review tools (see `CODE_REVIEW_TOOL_ISSUE.md`). One PR to
 delete the folder + update `README.md` to match reality (TanStack Start + Supabase).
 Touch *only* `backend/**` and `README.md`.
 
-### How the next agent should approach this list
+### How the next agent should approach lists in § 13 and § 14
 1. Pull `main`, pick the **first unchecked** item.
 2. Branch with the suggested name; keep the diff to the files listed.
-3. Commit, push, open PR with `Refs #6 — part X/N` in the body, squash-merge, delete branch.
+3. Commit, push, open PR with `Refs #<issue> — part X/N` in the body, squash-merge, delete branch.
 4. Tick the item here (move it under § 11 Changelog with the merged commit).
 5. Stop. Let the human review before starting the next.
 
 ---
+
+## 14. Task Module follow-ups (issue #11) — remaining slices
+
+Tracks the unfinished slices of issue #11's "Task Module Updates" sub-issue. Parts 1, 2,
+3a and 3b are merged (see § 11). Pick the next one top → bottom.
+
+### 14.1 ✅ DONE — `feat/task-rename-process-and-trim-options` (PR #13)
+### 14.2 ✅ DONE — `feat/task-manual-save-delete` (PR #14)
+### 14.3 ✅ DONE — `feat/task-process-productivity-targets` (PR #18)
+### 14.4 ✅ DONE — `feat/board-process-productivity-metrics` (PR #19)
+
+### 14.5 TODO — `feat/task-status-dropdown-and-board-columns`
+Owner's spec (issue #11, comment 1): the **Status** dropdown should expose
+**New, In Progress, On Hold, Error, Done** — but today the Task drawer's "Status" select
+is bound directly to the board's column list (`Backlog / In Progress / In Review / Done`)
+because status === column in this schema. This needs the Kanban-board overhaul from issue
+#11 comment 2 to land first (rename `Backlog → New Task`, add `Error` column, add `On Hold`
+column or treat it as a flag) — so this slice should be paired with **issue #8 — Kanban**
+work, not shipped standalone.
+
+Suggested ordering for the next agent:
+1. First land the Kanban column rename + new columns (`Backlog → New Task`, add `Error`,
+   decide `On Hold` as column vs flag). That's a small DB migration in `supabase/` +
+   updating `DEFAULT_COLUMNS` in `src/routes/_authenticated/board.tsx` and the colours in
+   `KanbanBoard.tsx`.
+2. Then the Task drawer's Status select will reflect the new columns automatically.
+3. Update the `BoardProductivityMetrics` widget's "completed" definition if the new column
+   semantics require it (currently it relies on `completed_at`, which is unaffected).
+
+Out of scope of this handover: don't bundle the Kanban-board drag-perf fix
+(`Maximum update depth exceeded`) into the same PR — that's its own slice under issue #8.
+
+
 
 ## 12. Quick agent self-check before opening a PR
 

@@ -240,6 +240,18 @@ These are the human owner's exact answers to setup questions. Treat as binding.
 
 ## 11. Changelog (append at the top of the list)
 
+- **2026-01 — `fix/board-add-card-optimistic`** (refs **issue #8 — Kanban**, closes
+  § 13.5): The `Add card` flow on the Kanban board (`KanbanBoard.addTask`) awaited
+  the Supabase round-trip before inserting the row into local state, so the column
+  visibly froze for the duration of the network call — the exact "has create but
+  stuck on that" symptom from the screenshot at the top of issue #8. Switched to an
+  optimistic insert: a placeholder card with a `optimistic-<uuid>` temp id appears
+  instantly, the form closes, and the placeholder is swapped for the real row once
+  the insert resolves (or rolled back + toast on error). `persistTaskOrder` was
+  taught to skip any tasks whose id still starts with `optimistic-` so a drag that
+  fires during the round-trip never tries to write a non-existent row. Single-file
+  change to `src/components/kanban/KanbanBoard.tsx`, ~55 LoC.
+
 - **2026-01 — `fix/productivity-rolling-window-30`** (closes **issue #30 — Check
   working of process productivity**): The `Process productivity` widget on the
   board (`src/components/board/BoardProductivityMetrics.tsx`) was using a
@@ -402,10 +414,11 @@ Supabase Realtime channel on `tasks` / `board_columns` filtered by `board_id` wo
 close this. Keep the patch isolated to a `useBoardRealtime(boardId)` hook called from
 `/_authenticated/board.tsx`. Skip optimistic conflict resolution (out of scope).
 
-### 13.5 TODO — `fix/board-add-card-optimistic`
-**Symptom:** Adding a card awaits the round-trip before the card appears → feels slow.
-Insert an optimistic placeholder card immediately, then reconcile with the server row
-(or roll back on error). Reuse the same pattern already used for drag persistence.
+### 13.5 ✅ DONE — `fix/board-add-card-optimistic`
+Inserted an optimistic placeholder card on Add (temp id `optimistic-<uuid>`), then
+swap for the real row from Supabase / roll back on error. `persistTaskOrder` skips
+optimistic ids so a drag during the round-trip can't write a non-existent row.
+Shipped (see § 11).
 
 ### 13.6 TODO — `fix/auth-callback-redirect-loop`
 **To verify:** `routes/auth.callback.tsx` exchanges the PKCE code and redirects. The

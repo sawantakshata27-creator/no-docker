@@ -91,7 +91,10 @@ export function KanbanBoard({ boardId, userId, columns, tasks: initialTasks, onC
   };
 
   const persistTaskOrder = async (nextTasks: TaskRecord[], affectedColumnIds: string[]) => {
-    const updates = nextTasks.filter((task) => affectedColumnIds.includes(task.column_id));
+    // Skip optimistic placeholders (see addTask) — they have no Supabase row yet.
+    const updates = nextTasks.filter(
+      (task) => affectedColumnIds.includes(task.column_id) && !task.id.startsWith("optimistic-"),
+    );
     const results = await Promise.all(
       updates.map((task) =>
         supabase
@@ -151,6 +154,35 @@ export function KanbanBoard({ boardId, userId, columns, tasks: initialTasks, onC
     const position = columnTasks.length
       ? Math.max(...columnTasks.map((task) => task.position)) + 1
       : 0;
+
+    // Optimistic placeholder so the new card appears instantly — addresses
+    // issue #8 "has create but stuck on that" (AGENTS.md § 13.5). The temp id
+    // is prefixed with `optimistic-` so it can be swapped for the real row
+    // once Supabase responds, and so `persistTaskOrder` can skip it if a
+    // drag fires before the round-trip completes.
+    const tempId = `optimistic-${crypto.randomUUID()}`;
+    const optimisticTask: TaskRecord = {
+      id: tempId,
+      board_id: boardId,
+      title,
+      description: null,
+      priority: "medium",
+      column_id: columnId,
+      position,
+      process_stage: null,
+      due_date: null,
+      created_by: userId,
+      completed_at: null,
+    };
+
+    setTasks((prev) => {
+      const next = sortTasks([...prev, optimisticTask]);
+      dragSnapshotRef.current = next;
+      return next;
+    });
+    setAddingTo(null);
+    setNewTitle("");
+
     const { data, error } = await supabase
       .from("tasks")
       .insert({
@@ -164,22 +196,29 @@ export function KanbanBoard({ boardId, userId, columns, tasks: initialTasks, onC
       .select()
       .single();
 
-    if (error) {
-      toast.error(error.message);
+    if (error || !data) {
+      // Roll back the optimistic insert and surface the error.
+      setTasks((prev) => {
+        const next = prev.filter((task) => task.id !== tempId);
+        dragSnapshotRef.current = next;
+        return next;
+      });
+      toast.error(error?.message || "Failed to add task");
       return;
     }
 
-    const nextTask = data as TaskRecord;
-    // Keep dragSnapshotRef in sync inside the same updater batch so it is
-    // never stale if a drag starts in the same React 19 auto-batching tick.
+    const realTask = data as TaskRecord;
+    // Swap the optimistic placeholder for the persisted row inside the same
+    // updater so dragSnapshotRef stays consistent (see § 13.3 fix in PR #40).
     setTasks((prev) => {
-      const next = sortTasks([...prev, nextTask]);
+      const next = sortTasks(prev.map((task) => (task.id === tempId ? realTask : task)));
       dragSnapshotRef.current = next;
       return next;
     });
-    setAddingTo(null);
-    setNewTitle("");
-    setSelectedTaskId(nextTask.id);
+    setSelectedTaskId(realTask.id);
+    // Background refresh so downstream queries (analytics, dashboard metrics)
+    // pick up the new row. Local state already has it, so this won't cause a
+    // visible flash.
     onChange();
   };
 

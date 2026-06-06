@@ -240,6 +240,14 @@ These are the human owner's exact answers to setup questions. Treat as binding.
 
 ## 11. Changelog (append at the top of the list)
 
+- **2026-01 — `feat/search-keyboard-nav-recents`** (refs **issue #17 — Searchbar**, part 2/N):
+  Tiny follow-up to PR #24 — `↑/↓/Enter` in the global-search input now navigate the
+  **Recent searches** list when the query is empty (previously they only worked on live
+  search results, leaving the recents list mouse-only). The selected row gets the same
+  primary-tint highlight used elsewhere in the palette, with hover/`onMouseEnter`
+  syncing the keyboard cursor. Single-file change to `src/components/layout/GlobalSearch.tsx`,
+  ~25 LoC. No new deps, no DB changes.
+
 - **2026-01 — `feat/search-recent-searches`** (refs **issue #17 — Searchbar**, part 1/N):
   Implemented the "store recent searches" requirement that the global-search palette
   previously stubbed out as *"Recent searches coming soon"*. Recent queries are persisted

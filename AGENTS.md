@@ -240,6 +240,22 @@ These are the human owner's exact answers to setup questions. Treat as binding.
 
 ## 11. Changelog (append at the top of the list)
 
+- **2026-01 — `feat/board-add-error-column`** (refs **issue #8 — Kanban** and
+  **issue #11 — Tasks** part 4/N, prep for the Status-dropdown slice in § 14.5):
+  Added the **`Error`** column between **In Review** and **Done** in both seed
+  paths (`DEFAULT_COLUMNS` in `src/routes/_authenticated/board.tsx` and the
+  onboarding seed in `src/routes/_authenticated/onboarding.tsx`) with the spec
+  red colour `#ef4444`. New idempotent SQL migration
+  (`supabase/migrations/20260121120000_add_error_column_to_boards.sql`) inserts
+  the `Error` column into every existing board that doesn't already have one —
+  it bumps the position of `Done` (and anything after) by 1 so the new column
+  slots in between, then inserts `Error` at the freed slot. No tasks are moved
+  (column_id is preserved). The per-status colour spec (Grey / Blue / Orange /
+  Red / Green) is now fully satisfied — the existing seed colours already match
+  the other 4 statuses. Diff = 3 files, ~10 LoC + 1 migration. Remaining follow-up:
+  the Task drawer Status dropdown overhaul tracked in § 14.5 can now proceed
+  because the columns it binds to finally include `Error`.
+
 - **2026-01 — `feat/board-rename-backlog-to-new-task`** (refs **issue #8 — Kanban** and
   **issue #11 — Tasks** part 4/N, prep for the Status-dropdown slice in § 14.5): Renamed
   the default `Backlog` column to **`New Task`** to match the owner's spec. Touches the

@@ -240,6 +240,18 @@ These are the human owner's exact answers to setup questions. Treat as binding.
 
 ## 11. Changelog (append at the top of the list)
 
+- **2026-01 — `feat/board-rename-in-review-to-on-hold`** (refs **issue #11 — Tasks**,
+  part of § 14.5 Status-dropdown slice): Renamed the default `In Review` column to
+  **`On Hold`** so the column set lines up with the owner's Status-dropdown spec from
+  issue #11 comment 1 (`New / In Progress / On Hold / Error / Done`). Touches the two
+  seed paths (`DEFAULT_COLUMNS` in `src/routes/_authenticated/board.tsx` and the
+  onboarding seed in `src/routes/_authenticated/onboarding.tsx`). Adds an idempotent
+  SQL migration (`supabase/migrations/20260122120000_rename_in_review_to_on_hold.sql`)
+  that renames any existing `board_columns` row still called `In Review`. No schema
+  change, no task data moved (`column_id` is preserved). Position 2 / amber colour
+  (`#f59e0b`) kept so the visual order stays
+  `New Task → In Progress → On Hold → Error → Done`. Diff = 3 files, ~3 LoC.
+
 - **2026-01 — `feat/search-keyboard-nav-recents`** (refs **issue #17 — Searchbar**, part 2/N):
   Tiny follow-up to PR #24 — `↑/↓/Enter` in the global-search input now navigate the
   **Recent searches** list when the query is empty (previously they only worked on live

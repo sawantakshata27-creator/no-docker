@@ -131,3 +131,20 @@ export function buildSeedTasks(columns: ColumnRecord[], boardId: string, userId:
     });
   });
 }
+
+// Default SLA hours per process stage.
+// When a task is created with a process_stage but no explicit due_date,
+// the due_date is set to created_at + SLA_HOURS_PER_STAGE[process_stage].
+export const SLA_HOURS_PER_STAGE: Record<string, number> = {
+  "Sign Creation": 8,
+  "Pre-processing": 4,
+  "Association": 6,
+  "Adjustment": 2,
+};
+
+/** Returns true when a task is past its due_date and not in a Done column. */
+export function isOverdue(task: { due_date?: string | null; column_id: string }, doneColIds: Set<string>): boolean {
+  if (!task.due_date) return false;
+  if (doneColIds.has(task.column_id)) return false;
+  return new Date(task.due_date) < new Date();
+}

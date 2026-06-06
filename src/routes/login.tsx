@@ -146,14 +146,14 @@ function LoginPage() {
           transition={{ duration: 16, repeat: Infinity, ease: "easeInOut" }}
         />
 
-        <Link to="/" className="relative z-10 flex items-center gap-2.5">
-          <img 
-            src="/2ds-workflow-logo.png" 
-            alt="2DS Workflow" 
+        <div className="relative z-10 flex items-center gap-2.5" data-testid="login-cover-brand">
+          <img
+            src="/2ds-workflow-logo.png"
+            alt="2DS Workflow"
             className="h-10 w-auto object-contain"
           />
           <span className="font-display text-lg font-semibold">2DS Workflow</span>
-        </Link>
+        </div>
 
         <motion.div
           className="relative z-10 max-w-md"
@@ -289,13 +289,6 @@ function LoginPage() {
           transition={{ duration: 0.4, ease: [0.16, 1, 0.3, 1] }}
           className="relative w-full max-w-sm liquid-glass"
         >
-          <Link
-            to="/"
-            className="mb-6 inline-flex items-center gap-1.5 text-xs text-muted-foreground transition hover:text-foreground"
-          >
-            <ArrowLeft className="h-3 w-3" /> Back to home
-          </Link>
-
           <motion.h1
             key={`title-${mode}`}
             initial={{ opacity: 0, y: 8 }}

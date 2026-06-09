@@ -1,4 +1,5 @@
 import { useState, useEffect, useCallback } from "react";
+import { createPortal } from "react-dom";
 import { useNavigate } from "@tanstack/react-router";
 import { motion, AnimatePresence } from "framer-motion";
 import { Search, FileText, ListChecks, Kanban, ArrowRight, Clock } from "lucide-react";
@@ -209,7 +210,7 @@ export function GlobalSearch() {
         onClick={() => setOpen(true)}
         layout
         transition={{ duration: 0.3, ease: [0.16, 1, 0.3, 1] }}
-        className="group flex w-full max-w-xl items-center gap-2.5 rounded-full border border-border bg-card/60 px-4 py-2 text-sm text-muted-foreground shadow-sm transition hover:border-primary-300 hover:bg-card hover:shadow-md focus:border-primary-400 focus:outline-none"
+        className="group flex w-full max-w-xl items-center gap-2.5 rounded-full border border-border bg-white px-4 py-2 text-sm text-muted-foreground shadow-sm transition hover:border-primary-300 hover:bg-white hover:shadow-md focus:border-primary-400 focus:outline-none dark:bg-white/10 dark:hover:bg-white/15"
         data-testid="global-search-trigger"
       >
         <Search className="h-4 w-4 shrink-0 transition group-hover:text-primary-600" />
@@ -223,13 +224,15 @@ export function GlobalSearch() {
         </div>
       </motion.button>
 
-      <AnimatePresence>
+      {createPortal(
+        <AnimatePresence>
         {open && (
           <>
             <motion.div
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
               exit={{ opacity: 0 }}
+              transition={{ duration: 0.18 }}
               className="fixed inset-0 z-50 bg-black/40 backdrop-blur-sm"
               onClick={() => setOpen(false)}
             />
@@ -414,7 +417,9 @@ export function GlobalSearch() {
             </motion.div>
           </>
         )}
-      </AnimatePresence>
+      </AnimatePresence>,
+      document.body
+      )}
     </div>
   );
 }

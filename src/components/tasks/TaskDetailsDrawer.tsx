@@ -14,6 +14,13 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import {
   priorityClass,
   type ColumnRecord,
   type TaskRecord,
@@ -273,25 +280,30 @@ export function TaskDetailsDrawer({
               </Field>
 
               <Field label="Process">
-                <select
-                  className="input-field"
+                <Select
                   value={draft.process_stage ?? ""}
-                  onChange={(event) => patchDraft({ process_stage: event.target.value || null })}
+                  onValueChange={(val) => patchDraft({ process_stage: val || null })}
                   data-testid="task-process-select"
                 >
-                  {!draft.process_stage ? <option value="">Select process…</option> : null}
-                  {DEFAULT_PROCESS_STAGES.map((stage) => (
-                    <option key={stage} value={stage}>
-                      {stage}
-                    </option>
-                  ))}
-                  {draft.process_stage &&
-                  !DEFAULT_PROCESS_STAGES.includes(
-                    draft.process_stage as (typeof DEFAULT_PROCESS_STAGES)[number],
-                  ) ? (
-                    <option value={draft.process_stage}>{draft.process_stage} (legacy)</option>
-                  ) : null}
-                </select>
+                  <SelectTrigger className="input-field">
+                    <SelectValue placeholder="Select process…" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {DEFAULT_PROCESS_STAGES.map((stage) => (
+                      <SelectItem key={stage} value={stage} className="whitespace-normal break-words">
+                        {stage}
+                      </SelectItem>
+                    ))}
+                    {draft.process_stage &&
+                    !DEFAULT_PROCESS_STAGES.includes(
+                      draft.process_stage as (typeof DEFAULT_PROCESS_STAGES)[number],
+                    ) ? (
+                      <SelectItem value={draft.process_stage} className="whitespace-normal break-words">
+                        {draft.process_stage} (legacy)
+                      </SelectItem>
+                    ) : null}
+                  </SelectContent>
+                </Select>
                 {(() => {
                   const target = productivityTargetFor(draft.process_stage);
                   if (target == null) return null;

@@ -1,5 +1,6 @@
 import { Sidebar } from "./Sidebar";
 import { Topbar } from "./Topbar";
+import { ChatBot } from "@/components/chat/ChatBot";
 
 export function AppLayout({ children }: { children: React.ReactNode }) {
   return (
@@ -9,6 +10,7 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
         <Topbar />
         <main className="flex-1 p-6">{children}</main>
       </div>
+      <ChatBot />
     </div>
   );
 }

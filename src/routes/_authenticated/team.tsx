@@ -3,7 +3,7 @@ import { useState } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/lib/auth-store";
-import { Copy, Check, UserPlus, Crown, Shield, User, X, Loader2, Users, Link2, PlusCircle } from "lucide-react";
+import { Copy, Check, Crown, Shield, User, X, Loader2, Users, Link2, PlusCircle } from "lucide-react";
 import { toast } from "sonner";
 import { UserAvatar } from "@/components/ui/UserAvatar";
 
@@ -86,11 +86,6 @@ function TeamPage() {
     toast.success("Invite link copied — share it with teammates!");
   };
 
-  const copyInviteMessage = async () => {
-    const msg = `You've been invited to join "${org.name}" on 2DS Workflow.\n\nClick to join: ${getInviteUrl()}\n\nOr sign up manually and enter Org ID: ${org.code}`;
-    await navigator.clipboard.writeText(msg);
-    toast.success("Invite message copied — paste it anywhere!");
-  };
 
   const joinAnotherOrg = async () => {
     if (!user || !joinCode.trim()) return;
@@ -180,13 +175,6 @@ function TeamPage() {
             >
               <Link2 className="h-4 w-4" />
               Copy invite link
-            </button>
-            <button
-              onClick={copyInviteMessage}
-              className="inline-flex items-center gap-2 rounded-xl border border-primary-200 bg-primary-50 px-3 py-2.5 text-sm font-medium text-primary-700 transition hover:bg-primary-100"
-            >
-              <UserPlus className="h-4 w-4" />
-              Copy full message
             </button>
           </div>
         </div>

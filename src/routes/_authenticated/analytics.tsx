@@ -234,9 +234,9 @@ function Analytics() {
                   <stop offset="100%" stopColor="#0d9488" stopOpacity={0} />
                 </linearGradient>
               </defs>
-              <XAxis dataKey="week" stroke="#94a3b8" fontSize={11} tickLine={false} axisLine={false} />
-              <YAxis stroke="#94a3b8" fontSize={11} tickLine={false} axisLine={false} />
-              <Tooltip contentStyle={{ borderRadius: 12, border: "1px solid #e5e7eb", fontSize: 12 }} />
+              <XAxis dataKey="week" stroke="var(--color-muted-foreground)" fontSize={11} tickLine={false} axisLine={false} />
+              <YAxis stroke="var(--color-muted-foreground)" fontSize={11} tickLine={false} axisLine={false} />
+              <Tooltip contentStyle={{ borderRadius: 12, border: "1px solid var(--color-border)", fontSize: 12 }} />
               <Line type="monotone" dataKey="completed" stroke="#0d9488" strokeWidth={3} dot={{ fill: "#0d9488", r: 4 }} />
             </LineChart>
           </ResponsiveContainer>
@@ -255,9 +255,9 @@ function Analytics() {
                   <linearGradient id="gC" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stopColor="#0d9488" stopOpacity={0.35} /><stop offset="100%" stopColor="#0d9488" stopOpacity={0} /></linearGradient>
                   <linearGradient id="gD" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stopColor="#10b981" stopOpacity={0.35} /><stop offset="100%" stopColor="#10b981" stopOpacity={0} /></linearGradient>
                 </defs>
-                <XAxis dataKey="day" stroke="#94a3b8" fontSize={11} tickLine={false} axisLine={false} />
-                <YAxis stroke="#94a3b8" fontSize={11} tickLine={false} axisLine={false} />
-                <Tooltip contentStyle={{ borderRadius: 12, border: "1px solid #e5e7eb", fontSize: 12 }} />
+                <XAxis dataKey="day" stroke="var(--color-muted-foreground)" fontSize={11} tickLine={false} axisLine={false} />
+                <YAxis stroke="var(--color-muted-foreground)" fontSize={11} tickLine={false} axisLine={false} />
+                <Tooltip contentStyle={{ borderRadius: 12, border: "1px solid var(--color-border)", fontSize: 12 }} />
                 <Area type="monotone" dataKey="created" stroke="#0d9488" fill="url(#gC)" strokeWidth={2} name="Created" />
                 <Area type="monotone" dataKey="completed" stroke="#10b981" fill="url(#gD)" strokeWidth={2} name="Completed" />
               </AreaChart>
@@ -273,7 +273,7 @@ function Analytics() {
                 <Pie data={priorityDistribution} dataKey="value" nameKey="priority" innerRadius={50} outerRadius={75} paddingAngle={3}>
                   {priorityDistribution.map((s, i) => <Cell key={i} fill={s.color} />)}
                 </Pie>
-                <Tooltip contentStyle={{ borderRadius: 12, border: "1px solid #e5e7eb", fontSize: 12 }} />
+                <Tooltip contentStyle={{ borderRadius: 12, border: "1px solid var(--color-border)", fontSize: 12 }} />
               </PieChart>
             </ResponsiveContainer>
           </div>
@@ -295,9 +295,9 @@ function Analytics() {
           <div className="mt-4 h-64">
             <ResponsiveContainer>
               <BarChart data={byStage} layout="vertical" margin={{ left: 24 }}>
-                <XAxis type="number" stroke="#94a3b8" fontSize={11} tickLine={false} axisLine={false} />
-                <YAxis dataKey="name" type="category" stroke="#94a3b8" fontSize={11} width={120} tickLine={false} axisLine={false} />
-                <Tooltip contentStyle={{ borderRadius: 12, border: "1px solid #e5e7eb", fontSize: 12 }} />
+                <XAxis type="number" stroke="var(--color-muted-foreground)" fontSize={11} tickLine={false} axisLine={false} />
+                <YAxis dataKey="name" type="category" stroke="var(--color-muted-foreground)" fontSize={11} width={120} tickLine={false} axisLine={false} />
+                <Tooltip contentStyle={{ borderRadius: 12, border: "1px solid var(--color-border)", fontSize: 12 }} />
                 <Bar dataKey="value" radius={[0, 8, 8, 0]}>
                   {byStage.map((s, i) => <Cell key={i} fill={s.color} />)}
                 </Bar>
@@ -310,9 +310,9 @@ function Analytics() {
           <div className="mt-4 h-64">
             <ResponsiveContainer>
               <BarChart data={byStatus}>
-                <XAxis dataKey="name" stroke="#94a3b8" fontSize={10} tickLine={false} axisLine={false} angle={-15} textAnchor="end" height={60} />
-                <YAxis stroke="#94a3b8" fontSize={11} tickLine={false} axisLine={false} />
-                <Tooltip contentStyle={{ borderRadius: 12, border: "1px solid #e5e7eb", fontSize: 12 }} />
+                <XAxis dataKey="name" stroke="var(--color-muted-foreground)" fontSize={10} tickLine={false} axisLine={false} angle={-15} textAnchor="end" height={60} />
+                <YAxis stroke="var(--color-muted-foreground)" fontSize={11} tickLine={false} axisLine={false} />
+                <Tooltip contentStyle={{ borderRadius: 12, border: "1px solid var(--color-border)", fontSize: 12 }} />
                 <Bar dataKey="value" radius={[8, 8, 0, 0]}>
                   {byStatus.map((s, i) => <Cell key={i} fill={s.color} />)}
                 </Bar>

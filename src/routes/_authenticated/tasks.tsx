@@ -466,7 +466,7 @@ function TasksPage() {
             <thead className="bg-muted/40 text-xs uppercase text-muted-foreground">
               <tr>
                 <th className="px-4 py-2 text-left">Title</th>
-                <th className="px-4 py-2 text-left">Stage</th>
+                <th className="px-4 py-2 text-left">Process</th>
                 <th className="px-4 py-2 text-left">Status</th>
                 <th className="px-4 py-2 text-left">Priority</th>
                 <th className="px-4 py-2 text-left">Due</th>

@@ -5,7 +5,7 @@ import { z } from "zod";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/lib/auth-store";
 import { toast } from "sonner";
-import { Mail, Lock, Loader2, Sparkles, ArrowLeft } from "lucide-react";
+import { Mail, Lock, Loader2, ArrowLeft } from "lucide-react";
 
 const searchSchema = z.object({
   mode: z.enum(["signin", "signup"]).optional(),
@@ -114,16 +114,15 @@ function LoginPage() {
       <motion.div
         initial={{ opacity: 0 }}
         animate={{ opacity: 1 }}
-        transition={{ duration: 0.6 }}
+        transition={{ duration: 1.2, ease: [0.16, 1, 0.3, 1] }}
         className="relative hidden flex-col justify-between overflow-hidden p-12 text-white md:flex"
         style={{
-          backgroundImage: "url('https://images.unsplash.com/photo-1666148670142-2f01b117e6e0?crop=entropy&cs=srgb&fm=jpg&ixid=M3w4NjAzMjh8MHwxfHNlYXJjaHwyfHxkaWdpdGFsJTIwd29ya2Zsb3d8ZW58MHx8fHwxNzc5MDEzMTYzfDA&ixlib=rb-4.1.0&q=85')",
+          backgroundImage: "url('/IMG3.png')",
           backgroundSize: "cover",
-          backgroundPosition: "center",
+          backgroundPosition: "center bottom",
+          animation: "bgPan 60s linear infinite alternate",
         }}
       >
-        {/* Dark overlay with gradient */}
-        <div className="absolute inset-0 bg-gradient-to-br from-primary-900/95 via-primary-800/90 to-primary-900/95" />
         
         {/* Animated gradient orbs */}
         <motion.div
@@ -139,13 +138,12 @@ function LoginPage() {
           transition={{ duration: 16, repeat: Infinity, ease: "easeInOut" }}
         />
 
-        <div className="relative z-10 flex items-center gap-2.5" data-testid="login-cover-brand">
+        <div className="relative z-10 flex items-center" data-testid="login-cover-brand">
           <img
-            src="/2ds-workflow-logo.png"
-            alt="2DS Workflow"
-            className="h-10 w-auto object-contain"
+            src="/IMG2.png"
+            alt="Logo"
+            className="h-20 w-auto object-contain drop-shadow-lg"
           />
-          <span className="font-display text-lg font-semibold">2DS Workflow</span>
         </div>
 
         <motion.div
@@ -157,60 +155,17 @@ function LoginPage() {
             show: { transition: { staggerChildren: 0.1, delayChildren: 0.15 } },
           }}
         >
-          <motion.div
-            variants={{
-              hidden: { opacity: 0, y: 16 },
-              show: { opacity: 1, y: 0, transition: { duration: 0.5 } },
-            }}
-            className="inline-flex items-center gap-2 rounded-full border border-white/20 bg-white/10 px-3 py-1 text-[11px] font-semibold tracking-wider text-white/80 uppercase backdrop-blur"
-          >
-            <Sparkles className="h-3 w-3" />
-            Workflow OS
-          </motion.div>
           <motion.h2
             variants={{
               hidden: { opacity: 0, y: 16 },
               show: { opacity: 1, y: 0, transition: { duration: 0.5 } },
             }}
-            className="mt-5 font-display text-[44px] leading-[1.05] font-semibold tracking-tight"
+            className="mt-5 inline-block rounded-2xl border border-white/20 bg-white/10 px-5 py-3 font-display text-[44px] leading-[1.05] font-semibold tracking-tight backdrop-blur"
           >
             Ship documents
             <br /> at scale.
           </motion.h2>
-          <motion.p
-            variants={{
-              hidden: { opacity: 0, y: 16 },
-              show: { opacity: 1, y: 0, transition: { duration: 0.5 } },
-            }}
-            className="mt-5 max-w-md text-[15px] leading-relaxed text-white/75"
-          >
-            Track every sign through creation, preprocessing, association, adjustment and
-            delivery — without leaving your board.
-          </motion.p>
 
-          <motion.ul
-            variants={{
-              hidden: { opacity: 0 },
-              show: { opacity: 1, transition: { staggerChildren: 0.08, delayChildren: 0.4 } },
-            }}
-            className="mt-8 space-y-2.5 text-sm text-white/70"
-          >
-            {["Drag-and-drop Kanban", "Real-time throughput charts", "Org codes & roles"].map(
-              (t) => (
-                <motion.li
-                  key={t}
-                  variants={{
-                    hidden: { opacity: 0, x: -10 },
-                    show: { opacity: 1, x: 0 },
-                  }}
-                  className="flex items-center gap-2"
-                >
-                  <span className="h-1.5 w-1.5 rounded-full bg-white/70" />
-                  {t}
-                </motion.li>
-              ),
-            )}
-          </motion.ul>
         </motion.div>
 
         <motion.div
@@ -219,13 +174,13 @@ function LoginPage() {
           animate={{ opacity: 1 }}
           transition={{ delay: 0.6 }}
         >
-          © 2DS Workflow
+          © Process Hub
         </motion.div>
       </motion.div>
 
       <div className="relative flex items-center justify-center p-6 overflow-hidden min-h-screen">
         {/* Gradient mesh background */}
-        <div className="absolute inset-0 bg-gradient-to-br from-primary-50 via-surface to-accent2/10" />
+        <div className="absolute inset-0" style={{ background: "linear-gradient(135deg, #3D405B 0%, #2EC4B6 50%, #CBF3F0 100%)" }} />
         
         {/* Animated floating orbs for depth */}
         <motion.div
@@ -314,7 +269,8 @@ function LoginPage() {
               onClick={handleGoogle}
               disabled={loading}
               data-testid="google-login-btn"
-              className="mt-7 flex w-full items-center justify-center gap-2.5 rounded-full border border-border bg-card px-4 py-2.5 text-sm font-medium transition hover:border-primary-300 hover:bg-muted disabled:opacity-50"
+              className="mt-7 flex w-full items-center justify-center gap-2.5 rounded-full border border-border px-4 py-2.5 text-sm font-medium transition hover:border-primary-300 disabled:opacity-50"
+              style={{ background: "#ffffff", color: "#1a1a1a" }}
             >
               <svg viewBox="0 0 24 24" className="h-4 w-4">
                 <path
@@ -353,7 +309,8 @@ function LoginPage() {
                   initial={{ opacity: 0, height: 0 }}
                   animate={{ opacity: 1, height: "auto" }}
                   exit={{ opacity: 0, height: 0 }}
-                  className="input-field"
+                  className="input-field !rounded-full"
+                  style={{ background: "#ffffff", color: "#1a1a1a" }}
                   placeholder="Full name"
                   value={fullName}
                   onChange={(e) => setFullName(e.target.value)}
@@ -365,7 +322,8 @@ function LoginPage() {
             <div className="relative">
               <Mail className="absolute top-1/2 left-3 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
               <input
-                className="input-field pl-9"
+                className="input-field pl-9 !rounded-full"
+                style={{ background: "#ffffff", color: "#1a1a1a" }}
                 type="email"
                 placeholder="you@company.com"
                 value={email}
@@ -378,7 +336,8 @@ function LoginPage() {
               <div className="relative">
                 <Lock className="absolute top-1/2 left-3 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
                 <input
-                  className="input-field pl-9"
+                  className="input-field pl-9 !rounded-full"
+                  style={{ background: "#ffffff", color: "#1a1a1a" }}
                   type="password"
                   placeholder="Password (min 8 chars)"
                   minLength={8}

@@ -12,7 +12,6 @@ import { Toaster } from "sonner";
 
 import appCss from "../styles.css?url";
 import { useAuth } from "@/lib/auth-store";
-import { initTheme, useTheme } from "@/lib/theme-store";
 
 function NotFoundComponent() {
   return (
@@ -74,7 +73,7 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
       { rel: "apple-touch-icon", href: "/2ds-workflow-logo.png" },
       { rel: "preconnect", href: "https://fonts.googleapis.com" },
       { rel: "preconnect", href: "https://fonts.gstatic.com", crossOrigin: "" },
-      { rel: "stylesheet", href: "https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,500;9..144,600;9..144,700;9..144,800&family=Geist:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600&family=Space+Grotesk:wght@400;500;600;700&family=Archivo+Black&display=swap" },
+      { rel: "stylesheet", href: "https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap" },
     ],
   }),
   shellComponent: RootShell,
@@ -95,19 +94,6 @@ function RootShell({ children }: { children: React.ReactNode }) {
 function RootComponent() {
   const { queryClient } = Route.useRouteContext();
   const init = useAuth((s) => s.init);
-  const dark = useTheme((s) => s.dark);
-
-  useEffect(() => {
-    initTheme();
-  }, []);
-
-  useEffect(() => {
-    if (dark) {
-      document.documentElement.classList.add("dark");
-    } else {
-      document.documentElement.classList.remove("dark");
-    }
-  }, [dark]);
 
   useEffect(() => { init(); }, [init]);
 

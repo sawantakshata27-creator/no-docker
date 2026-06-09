@@ -1,9 +1,8 @@
-import { LogOut, Settings2, AlertTriangle, Sun, Moon, ChevronDown } from "lucide-react";
+import { LogOut, Settings2, ChevronDown } from "lucide-react";
 import { useNavigate } from "@tanstack/react-router";
-import { useState } from "react";
+import { useState, useEffect, useRef } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { useAuth } from "@/lib/auth-store";
-import { useTheme } from "@/lib/theme-store";
 import { UserAvatar } from "@/components/ui/UserAvatar";
 import { NotificationsPanel } from "./NotificationsPanel";
 import { GlobalSearch } from "./GlobalSearch";
@@ -12,22 +11,26 @@ import { OrgSwitcher } from "./OrgSwitcher";
 export function Topbar() {
   const { profile, org, signOut } = useAuth();
   const navigate = useNavigate();
-  const { dark, toggle } = useTheme();
-  const [logoutConfirm, setLogoutConfirm] = useState(false);
   const [profileDropdownOpen, setProfileDropdownOpen] = useState(false);
+  const profileRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    if (!profileDropdownOpen) return;
+    const handler = (e: MouseEvent) => {
+      if (profileDropdownOpen && profileRef.current && !profileRef.current.contains(e.target as Node)) {
+        setProfileDropdownOpen(false);
+      }
+    };
+    document.addEventListener("mousedown", handler);
+    return () => document.removeEventListener("mousedown", handler);
+  }, [profileDropdownOpen]);
 
   const hour = new Date().getHours();
   const greet = hour < 12 ? "Good morning" : hour < 18 ? "Good afternoon" : "Good evening";
 
   const handleLogout = async () => {
     await signOut();
-    setLogoutConfirm(false);
     navigate({ to: "/login" });
-  };
-
-  const handleThemeToggle = (e: React.MouseEvent) => {
-    const rect = (e.currentTarget as HTMLElement).getBoundingClientRect();
-    toggle(rect.left + rect.width / 2, rect.top + rect.height / 2);
   };
 
   return (
@@ -61,23 +64,9 @@ export function Topbar() {
         animate={{ opacity: 1, x: 0 }}
         transition={{ delay: 0.1, duration: 0.35 }}
       >
-        <motion.button
-          whileHover={{ scale: 1.06 }}
-          whileTap={{ scale: 0.92 }}
-          onClick={handleThemeToggle}
-          data-testid="theme-toggle"
-          className="relative grid h-9 w-9 place-items-center rounded-full text-muted-foreground transition hover:bg-muted hover:text-foreground"
-          title={dark ? "Switch to light mode" : "Switch to dark mode"}
-        >
-          <span className="theme-morph">
-            <Sun className="sun" strokeWidth={2.2} />
-            <Moon className="moon" strokeWidth={2.2} />
-          </span>
-        </motion.button>
-
         <NotificationsPanel />
 
-        <div className="relative ml-1.5">
+        <div className="relative ml-1.5" ref={profileRef}>
           <button
             onClick={() => setProfileDropdownOpen(!profileDropdownOpen)}
             data-testid="topbar-profile-btn"
@@ -94,88 +83,41 @@ export function Topbar() {
 
           <AnimatePresence>
             {profileDropdownOpen && (
-              <>
-                <div 
-                  className="fixed inset-0 z-40" 
-                  onClick={() => setProfileDropdownOpen(false)} 
-                />
-                <motion.div
-                  initial={{ opacity: 0, y: -8, scale: 0.95 }}
-                  animate={{ opacity: 1, y: 0, scale: 1 }}
-                  exit={{ opacity: 0, y: -8, scale: 0.95 }}
-                  transition={{ duration: 0.15 }}
-                  className="absolute right-0 top-11 z-50 w-56 overflow-hidden rounded-2xl border border-border bg-popover shadow-xl"
-                  data-testid="profile-dropdown"
-                >
-                  <div className="p-1.5">
-                    <button
-                      onClick={() => {
-                        setProfileDropdownOpen(false);
-                        navigate({ to: "/settings" });
-                      }}
-                      className="flex w-full items-center gap-3 rounded-lg px-3 py-2.5 text-sm text-foreground transition hover:bg-muted"
-                    >
-                      <Settings2 className="h-4 w-4 text-muted-foreground" />
-                      <span className="font-medium">Settings</span>
-                    </button>
-                    <div className="my-1 h-px bg-border" />
-                    <button
-                      onClick={() => {
-                        setProfileDropdownOpen(false);
-                        setLogoutConfirm(true);
-                      }}
-                      className="flex w-full items-center gap-3 rounded-lg px-3 py-2.5 text-sm text-destructive transition hover:bg-destructive/10"
-                    >
-                      <LogOut className="h-4 w-4" />
-                      <span className="font-medium">Sign out</span>
-                    </button>
-                  </div>
-                </motion.div>
-              </>
-            )}
-          </AnimatePresence>
-        </div>
-
-        <div className="relative">
-          <AnimatePresence>
-            {logoutConfirm && (
               <motion.div
                 initial={{ opacity: 0, y: -8, scale: 0.95 }}
                 animate={{ opacity: 1, y: 0, scale: 1 }}
                 exit={{ opacity: 0, y: -8, scale: 0.95 }}
-                transition={{ duration: 0.15 }}
-                className="absolute right-0 top-11 z-50 w-64 overflow-hidden rounded-2xl border border-border bg-popover shadow-xl"
-                data-testid="logout-confirm-panel"
+                transition={{ duration: 0.18, ease: [0.16, 1, 0.3, 1] }}
+                className="absolute right-0 top-11 z-50 w-56 overflow-hidden rounded-2xl border border-border bg-popover shadow-xl"
+                data-testid="profile-dropdown"
               >
-                <div className="p-4">
-                  <div className="flex items-center gap-2 text-sm font-semibold text-foreground">
-                    <AlertTriangle className="h-4 w-4 text-amber-500" />
-                    Sign out?
-                  </div>
-                  <p className="mt-1 text-xs text-muted-foreground">
-                    You'll need to sign in again to access your workspace.
-                  </p>
-                  <div className="mt-3 flex gap-2">
-                    <button
-                      onClick={handleLogout}
-                      className="flex-1 rounded-lg bg-destructive px-3 py-2 text-xs font-semibold text-white transition hover:brightness-110"
-                    >
-                      Yes, sign out
-                    </button>
-                    <button
-                      onClick={() => setLogoutConfirm(false)}
-                      className="flex-1 rounded-lg border border-border px-3 py-2 text-xs font-medium text-muted-foreground transition hover:bg-muted"
-                    >
-                      Cancel
-                    </button>
-                  </div>
+                <div className="p-1.5">
+                  <button
+                    onClick={() => {
+                      setProfileDropdownOpen(false);
+                      navigate({ to: "/settings" });
+                    }}
+                    className="flex w-full items-center gap-3 rounded-lg px-3 py-2.5 text-sm text-foreground transition hover:bg-muted"
+                  >
+                    <Settings2 className="h-4 w-4 text-muted-foreground" />
+                    <span className="font-medium">Settings</span>
+                  </button>
+                  <div className="my-1 h-px bg-border" />
+                  <button
+                    onClick={() => {
+                      setProfileDropdownOpen(false);
+                      handleLogout();
+                    }}
+                    className="flex w-full items-center gap-3 rounded-lg px-3 py-2.5 text-sm text-destructive transition hover:bg-destructive/10"
+                  >
+                    <LogOut className="h-4 w-4" />
+                    <span className="font-medium">Sign out</span>
+                  </button>
                 </div>
               </motion.div>
             )}
           </AnimatePresence>
-          {logoutConfirm && (
-            <div className="fixed inset-0 z-40" onClick={() => setLogoutConfirm(false)} />
-          )}
+
         </div>
       </motion.div>
     </motion.header>

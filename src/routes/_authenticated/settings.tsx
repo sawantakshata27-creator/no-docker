@@ -1,10 +1,9 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useRef, useMemo, useState } from "react";
-import { Building2, Camera, Loader2, Lock, Moon, Sun, User } from "lucide-react";
+import { Building2, Camera, Loader2, Lock, User } from "lucide-react";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/lib/auth-store";
-import { useTheme } from "@/lib/theme-store";
 import { UserAvatar } from "@/components/ui/UserAvatar";
 
 export const Route = createFileRoute("/_authenticated/settings")({ component: SettingsPage });
@@ -66,7 +65,6 @@ function ProfileTab({ profile, userId, email, onSaved }: any) {
   const [uploading, setUploading] = useState(false);
   const [lastSavedName, setLastSavedName] = useState(profile?.full_name ?? "");
   const fileInputRef = useRef<HTMLInputElement>(null);
-  const { dark, toggle } = useTheme();
 
   const hasChanges = useMemo(
     () => name.trim() !== (lastSavedName ?? "").trim(),
@@ -239,30 +237,6 @@ function ProfileTab({ profile, userId, email, onSaved }: any) {
         </button>
       </div>
 
-      <div className="h-px bg-border" />
-
-      {/* Theme preference */}
-      <div>
-        <div className="mb-3 text-sm font-medium">Appearance</div>
-        <div className="flex items-center gap-3">
-          {[
-            { label: "Light", v: false, icon: Sun },
-            { label: "Dark", v: true, icon: Moon },
-          ].map(({ label, v, icon: Icon }) => (
-            <button
-              key={label}
-              onClick={() => { if (dark !== v) toggle(); }}
-              className={`flex items-center gap-2 rounded-xl border px-4 py-2.5 text-sm transition ${
-                dark === v
-                  ? "border-primary-500 bg-primary-50 font-medium text-primary-700"
-                  : "border-border text-muted-foreground hover:bg-muted"
-              }`}
-            >
-              <Icon className="h-4 w-4" /> {label}
-            </button>
-          ))}
-        </div>
-      </div>
     </div>
   );
 }

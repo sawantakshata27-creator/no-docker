@@ -1,97 +1,232 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { useEffect, useState } from "react";
+import { useEffect, useState, useRef, useCallback } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/lib/auth-store";
-import { useEffect as useRealtimeEffect, useRef } from "react";
-import { useEditor, EditorContent } from "@tiptap/react";
-import StarterKit from "@tiptap/starter-kit";
-import Placeholder from "@tiptap/extension-placeholder";
-import Link from "@tiptap/extension-link";
-import { Bold, Italic, List, ListOrdered, Heading1, Heading2, Quote, Plus, FileText, Trash2, Loader2, Code, Paperclip, X, Upload, Share2, Users as UsersIcon } from "lucide-react";
+import {
+  Plus, FileText, FileSpreadsheet, FileImage, FileCode, FileArchive,
+  File, Trash2, Loader2, Upload,
+  FolderOpen, Download, Search, StickyNote, Save,
+} from "lucide-react";
 import { toast } from "sonner";
 import { motion, AnimatePresence } from "framer-motion";
+import { pushNotification } from "@/lib/notifications";
 
 export const Route = createFileRoute("/_authenticated/documents")({ component: DocsPage });
 
-type Doc = { id: string; title: string; content: any; board_id: string | null; updated_at: string; created_by: string };
 type FileAttachment = { id: string; name: string; size: number; path: string; url: string };
+type TeamMember = { id: string; name: string; email: string };
+
+// ── Main page ─────────────────────────────────────────────────────────────────
 
 function DocsPage() {
   const { user, org } = useAuth();
-  const qc = useQueryClient();
-  const [activeId, setActiveId] = useState<string | null>(null);
+  const [pageTab, setPageTab] = useState<"notes" | "files">("notes");
 
-  const { data: docs } = useQuery({
-    queryKey: ["docs", org?.id],
+  const scopeFilter = org
+    ? { column: "org_id", value: org.id }
+    : { column: "created_by", value: user?.id ?? "" };
+
+  const { data: teamMembers } = useQuery({
+    queryKey: ["team-members", org?.id],
     enabled: !!org,
     queryFn: async () => {
-      const { data } = await supabase.from("documents").select("*").eq("org_id", org!.id).order("updated_at", { ascending: false });
-      return (data ?? []) as Doc[];
+      const { data } = await supabase
+        .from("organization_members")
+        .select("user_id, profiles(id, full_name, email)")
+        .eq("org_id", org!.id).eq("status", "active");
+      return data?.map((m: any) => ({
+        id: m.profiles.id,
+        name: m.profiles.full_name || m.profiles.email,
+        email: m.profiles.email,
+      })) as TeamMember[] ?? [];
     },
   });
-
-  const { data: boards } = useQuery({
-    queryKey: ["boards", org?.id],
-    enabled: !!org,
-    queryFn: async () => {
-      const { data } = await supabase.from("boards").select("id, name").eq("org_id", org!.id);
-      return data ?? [];
-    },
-  });
-
-  useEffect(() => {
-    if (!activeId && docs?.length) setActiveId(docs[0].id);
-  }, [docs, activeId]);
-
-  const active = docs?.find((d) => d.id === activeId);
-
-  const createDoc = async () => {
-    if (!org || !user) return;
-    const { data, error } = await supabase.from("documents")
-      .insert({ org_id: org.id, title: "Untitled", created_by: user.id })
-      .select().single();
-    if (error) return toast.error(error.message);
-    qc.invalidateQueries({ queryKey: ["docs", org.id] });
-    setActiveId(data.id);
-  };
-
-  const deleteDoc = async (id: string) => {
-    if (!confirm("Delete this document?")) return;
-    await supabase.from("documents").delete().eq("id", id);
-    setActiveId(null);
-    qc.invalidateQueries({ queryKey: ["docs", org!.id] });
-  };
-
-  if (!org) return <EmptyOrg />;
 
   return (
-    <div className="grid gap-4 lg:grid-cols-[280px_1fr]">
-      <aside className="card-surface flex h-[calc(100vh-7rem)] flex-col p-3">
-        <div className="mb-3 flex items-center justify-between">
-          <h2 className="font-semibold">Documents</h2>
-          <button onClick={createDoc} className="grid h-7 w-7 place-items-center rounded-lg bg-primary-600 text-white hover:bg-primary-700">
-            <Plus className="h-4 w-4" />
+    <div className="flex h-[calc(100vh-7rem)] flex-col gap-4">
+      <div>
+        <h1 className="text-2xl font-bold">Documents</h1>
+        <p className="text-sm text-muted-foreground">Jot notes and share files with your team.</p>
+      </div>
+
+      {/* Page tabs */}
+      <div className="flex gap-1 rounded-xl border border-border bg-muted/40 p-1 w-fit">
+        {([
+          { key: "notes", label: "Notes", icon: <StickyNote className="h-4 w-4" /> },
+          { key: "files", label: "Files", icon: <FolderOpen className="h-4 w-4" /> },
+        ] as const).map((t) => (
+          <button
+            key={t.key}
+            onClick={() => setPageTab(t.key)}
+            className={`flex items-center gap-2 rounded-lg px-4 py-2 text-sm font-semibold transition-all ${
+              pageTab === t.key ? "bg-primary-600 text-white shadow-sm" : "text-muted-foreground hover:bg-muted hover:text-foreground"
+            }`}
+          >
+            {t.icon}{t.label}
+          </button>
+        ))}
+      </div>
+
+      {pageTab === "notes" && (
+        <div className="flex-1 overflow-auto">
+          <NotesTab userId={user?.id ?? ""} orgId={org?.id ?? ""} actorId={user?.id ?? ""} />
+        </div>
+      )}
+
+      {pageTab === "files" && (
+        <div className="flex-1 overflow-auto">
+          <FilesHub scopeFilter={scopeFilter} teamMembers={teamMembers ?? []} />
+        </div>
+      )}
+    </div>
+  );
+}
+
+// ── Notes tab ─────────────────────────────────────────────────────────────────
+
+type Note = { id: string; title: string; body: string; updatedAt: string };
+
+function notesKey(userId: string) { return `notes:${userId}`; }
+function loadNotes(userId: string): Note[] {
+  try { const raw = localStorage.getItem(notesKey(userId)); return raw ? JSON.parse(raw) : []; } catch { return []; }
+}
+function saveNotes(userId: string, notes: Note[]) {
+  try { localStorage.setItem(notesKey(userId), JSON.stringify(notes)); } catch {}
+}
+
+function NotesTab({ userId, orgId, actorId }: { userId: string; orgId: string; actorId: string }) {
+  const [notes, setNotes] = useState<Note[]>(() => loadNotes(userId));
+  const [activeNoteId, setActiveNoteId] = useState<string | null>(notes[0]?.id ?? null);
+  const [saved, setSaved] = useState(true);
+  const saveTimer = useRef<any>(null);
+
+  const activeNote = notes.find((n) => n.id === activeNoteId) ?? null;
+
+  const notify = (kind: Parameters<typeof pushNotification>[0]["kind"], title: string) => {
+    if (!orgId || !actorId) return;
+    pushNotification({ orgId, actorId, kind, title, entityType: "note" });
+  };
+
+  const persist = (next: Note[]) => {
+    setNotes(next);
+    saveNotes(userId, next);
+  };
+
+  const createNote = () => {
+    const note: Note = { id: crypto.randomUUID(), title: "New Note", body: "", updatedAt: new Date().toISOString() };
+    const next = [note, ...notes];
+    persist(next);
+    setActiveNoteId(note.id);
+    setSaved(true);
+    notify("note_created", "New note created");
+  };
+
+  const deleteNote = (id: string) => {
+    if (!confirm("Delete this note?")) return;
+    const note = notes.find((n) => n.id === id);
+    const next = notes.filter((n) => n.id !== id);
+    persist(next);
+    setActiveNoteId(next[0]?.id ?? null);
+    notify("note_deleted", `Note deleted: ${note?.title || "Untitled"}`);
+  };
+
+  const patchNote = (id: string, patch: Partial<Note>) => {
+    setSaved(false);
+    clearTimeout(saveTimer.current);
+    const next = notes.map((n) => n.id === id ? { ...n, ...patch, updatedAt: new Date().toISOString() } : n);
+    setNotes(next);
+    saveTimer.current = setTimeout(() => { saveNotes(userId, next); setSaved(true); }, 600);
+  };
+
+  const saveNow = () => {
+    clearTimeout(saveTimer.current);
+    saveNotes(userId, notes);
+    setSaved(true);
+    if (activeNote) notify("note_updated", `Note saved: ${activeNote.title || "Untitled"}`);
+  };
+
+  return (
+    <div className="grid h-full gap-4 lg:grid-cols-[240px_1fr]" style={{ minHeight: "60vh" }}>
+      {/* Notes list */}
+      <aside className="card-surface flex flex-col overflow-hidden p-3">
+        <div className="mb-2 flex items-center justify-between">
+          <span className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+            Notes ({notes.length})
+          </span>
+          <button
+            onClick={createNote}
+            className="flex items-center gap-1 rounded-lg bg-primary-600 px-2 py-1 text-xs font-semibold text-white hover:bg-primary-700"
+          >
+            <Plus className="h-3 w-3" /> New
           </button>
         </div>
         <div className="flex-1 space-y-1 overflow-y-auto">
-          {!docs?.length && <p className="px-2 py-6 text-center text-xs text-muted-foreground">No documents yet</p>}
-          {docs?.map((d) => (
-            <button key={d.id} onClick={() => setActiveId(d.id)}
-              className={`flex w-full items-center gap-2 rounded-lg px-2 py-1.5 text-left text-sm transition ${activeId === d.id ? "bg-primary-50 text-primary-700" : "hover:bg-muted"}`}>
-              <FileText className="h-4 w-4 shrink-0 text-muted-foreground" />
-              <div className="min-w-0 flex-1 truncate">{d.title || "Untitled"}</div>
-            </button>
+          {notes.length === 0 && (
+            <p className="px-2 py-6 text-center text-xs text-muted-foreground">
+              No notes yet. Click <strong>New</strong> to jot one down.
+            </p>
+          )}
+          {notes.map((n) => (
+            <div key={n.id} className="flex items-center gap-1">
+              <button
+                onClick={() => setActiveNoteId(n.id)}
+                className={`flex flex-1 items-center gap-2 rounded-lg px-2 py-1.5 text-left text-sm transition ${
+                  activeNoteId === n.id ? "bg-primary-50 text-primary-700" : "hover:bg-muted"
+                }`}
+              >
+                <StickyNote className="h-4 w-4 shrink-0 text-muted-foreground" />
+                <div className="min-w-0 flex-1">
+                  <div className="truncate font-medium">{n.title || "Untitled"}</div>
+                  <div className="truncate text-[10px] text-muted-foreground">
+                    {new Date(n.updatedAt).toLocaleDateString(undefined, { month: "short", day: "numeric" })}
+                  </div>
+                </div>
+              </button>
+            </div>
           ))}
         </div>
       </aside>
 
-      <div className="card-surface min-h-[calc(100vh-7rem)] p-6">
-        {active ? (
-          <Editor key={active.id} doc={active} boards={boards ?? []} onDelete={() => deleteDoc(active.id)} />
+      {/* Note editor */}
+      <div className="card-surface flex flex-col gap-3 p-5">
+        {activeNote ? (
+          <>
+            <div className="flex items-center gap-3">
+              <input
+                value={activeNote.title}
+                onChange={(e) => patchNote(activeNote.id, { title: e.target.value })}
+                className="flex-1 bg-transparent text-xl font-bold outline-none placeholder-muted-foreground"
+                placeholder="Note title…"
+              />
+              <button
+                onClick={saveNow}
+                className="flex items-center gap-1.5 rounded-lg border border-border px-3 py-1.5 text-xs font-semibold text-foreground transition hover:bg-primary-50 hover:text-primary-700"
+              >
+                <Save className="h-3.5 w-3.5" /> Save
+              </button>
+              <button
+                onClick={() => deleteNote(activeNote.id)}
+                className="flex items-center gap-1.5 rounded-lg border border-red-200 px-3 py-1.5 text-xs font-semibold text-red-600 transition hover:bg-red-50"
+              >
+                <Trash2 className="h-3.5 w-3.5" /> Delete
+              </button>
+            </div>
+            <div className="h-px bg-border" />
+            <textarea
+              value={activeNote.body}
+              onChange={(e) => patchNote(activeNote.id, { body: e.target.value })}
+              placeholder="Start writing your note…"
+              className="flex-1 resize-none bg-transparent text-sm leading-relaxed text-foreground outline-none placeholder:text-muted-foreground/60"
+              style={{ minHeight: "400px" }}
+            />
+          </>
         ) : (
-          <div className="grid h-full place-items-center text-sm text-muted-foreground">
-            Select or create a document.
+          <div className="grid flex-1 place-items-center text-sm text-muted-foreground">
+            <div className="flex flex-col items-center gap-3">
+              <StickyNote className="h-10 w-10 opacity-30" />
+              <p>Select a note or click <strong>New</strong> to get started.</p>
+            </div>
           </div>
         )}
       </div>
@@ -99,391 +234,240 @@ function DocsPage() {
   );
 }
 
-function Editor({ doc, boards, onDelete }: { doc: Doc; boards: { id: string; name: string }[]; onDelete: () => void }) {
-  const { org, user } = useAuth();
+// ── Files Hub ─────────────────────────────────────────────────────────────────
+
+function FilesHub({
+  scopeFilter,
+  teamMembers,
+}: {
+  scopeFilter: { column: string; value: string };
+  teamMembers: TeamMember[];
+}) {
+  const { user, org } = useAuth();
   const qc = useQueryClient();
-  const [title, setTitle] = useState(doc.title);
-  const [boardId, setBoardId] = useState<string | "">(doc.board_id ?? "");
-  const [saving, setSaving] = useState(false);
-  const [attachments, setAttachments] = useState<FileAttachment[]>([]);
+  const fileInputRef = useRef<HTMLInputElement>(null);
   const [uploading, setUploading] = useState(false);
-  const [showShareModal, setShowShareModal] = useState(false);
+  const [dragOver, setDragOver] = useState(false);
+  const [search, setSearch] = useState("");
 
-  const editor = useEditor({
-    extensions: [
-      StarterKit,
-      Placeholder.configure({ placeholder: "Start writing your runbook, SOP, or notes…" }),
-      Link.configure({ openOnClick: false, HTMLAttributes: { class: "text-primary-700 underline" } }),
-    ],
-    content: doc.content,
-    editorProps: { attributes: { class: "prose prose-sm max-w-none focus:outline-none min-h-[400px]" } },
-  });
+  const hubPrefix = org ? `${org.id}/shared` : `user/${user?.id}/shared`;
 
-  // Load attachments
-  const { data: fileList } = useQuery({
-    queryKey: ["doc-files", doc.id],
+  const { data: files = [] } = useQuery({
+    queryKey: ["hub-files", hubPrefix],
     queryFn: async () => {
-      const { data, error } = await supabase.storage
-        .from("document-files")
-        .list(`${org!.id}/${doc.id}`);
-      
-      if (error || !data) return [];
-      
-      const files: FileAttachment[] = await Promise.all(
-        data.map(async (file) => {
-          // The "document-files" bucket is private, so build a signed URL
-          // (valid for 1 hour) instead of a public URL.
+      const { data, error } = await supabase.storage.from("document-files").list(hubPrefix, { limit: 200 });
+      if (error || !data) return [] as FileAttachment[];
+      return Promise.all(
+        data.map(async (f) => {
           const { data: signed } = await supabase.storage
             .from("document-files")
-            .createSignedUrl(`${org!.id}/${doc.id}/${file.name}`, 60 * 60);
-          
+            .createSignedUrl(`${hubPrefix}/${f.name}`, 3600);
           return {
-            id: file.id,
-            name: file.name,
-            size: file.metadata?.size ?? 0,
-            path: `${org!.id}/${doc.id}/${file.name}`,
+            id: f.id ?? f.name,
+            name: f.name,
+            size: f.metadata?.size ?? 0,
+            path: `${hubPrefix}/${f.name}`,
             url: signed?.signedUrl ?? "",
-          };
-        })
+          } as FileAttachment;
+        }),
       );
-      
-      return files;
     },
   });
 
-  useEffect(() => {
-    if (fileList) setAttachments(fileList);
-  }, [fileList]);
-
-  useEffect(() => { setTitle(doc.title); setBoardId(doc.board_id ?? ""); }, [doc.id]);
-
-  useEffect(() => {
-    if (!editor) return;
-    let t: any;
-    const save = async () => {
-      setSaving(true);
-      await supabase.from("documents").update({
-        title: title || "Untitled",
-        content: editor.getJSON(),
-        board_id: boardId || null,
-      }).eq("id", doc.id);
-      setSaving(false);
-      qc.invalidateQueries({ queryKey: ["docs"] });
-    };
-    const handler = () => { clearTimeout(t); t = setTimeout(save, 700); };
-    editor.on("update", handler);
-    return () => { editor.off("update", handler); clearTimeout(t); };
-  }, [editor, doc.id, title, boardId, qc]);
-
-  // Subscribe to upload broadcasts from other team members
-  useRealtimeEffect(() => {
-    if (!org) return;
-    const channel = supabase
-      .channel(`doc-uploads:${org.id}`)
-      .on("broadcast", { event: "file_uploaded" }, ({ payload }) => {
-        toast(`📎 ${payload.uploaderName} uploaded ${payload.fileCount} file(s) to "${payload.docTitle}"`, {
-          duration: 5000,
-        });
-        qc.invalidateQueries({ queryKey: ["doc-files", doc.id] });
-      })
-      .subscribe();
-    return () => { supabase.removeChannel(channel); };
-  }, [org?.id, doc.id]);
-
-  const saveMeta = async () => {
-    await supabase.from("documents").update({ title: title || "Untitled", board_id: boardId || null }).eq("id", doc.id);
-    qc.invalidateQueries({ queryKey: ["docs"] });
-  };
-
-  const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const files = Array.from(e.target.files ?? []);
-    if (!files.length) return;
-
-    if (!org || !user) {
-      toast.error("Your workspace is still loading — try again in a moment.");
-      e.target.value = "";
-      return;
-    }
-
+  const uploadFiles = useCallback(async (fileList: File[]) => {
+    if (!fileList.length) return;
     setUploading(true);
-    try {
-      for (const file of files) {
-        const filePath = `${org.id}/${doc.id}/${file.name}`;
-        const { error } = await supabase.storage
-          .from("document-files")
-          .upload(filePath, file, { upsert: true });
-
-        if (error) throw error;
-      }
-      toast.success(`${files.length} file(s) uploaded`);
-      qc.invalidateQueries({ queryKey: ["doc-files", doc.id] });
-      // Broadcast upload event to other org members on the documents page
-      if (org) {
-        supabase.channel(`doc-uploads:${org.id}`).send({
-          type: "broadcast",
-          event: "file_uploaded",
-          payload: {
-            docTitle: doc.title || "Untitled",
-            fileCount: files.length,
-            uploaderName: user?.email ?? "A team member",
-          },
+    let success = 0;
+    for (const file of fileList) {
+      const { error } = await supabase.storage
+        .from("document-files")
+        .upload(`${hubPrefix}/${file.name}`, file, { upsert: true });
+      if (error) { toast.error(`Failed: ${file.name} — ${error.message}`); }
+      else success++;
+    }
+    if (success) {
+      toast.success(`${success} file${success !== 1 ? "s" : ""} uploaded`);
+      qc.invalidateQueries({ queryKey: ["hub-files", hubPrefix] });
+      if (org && user) {
+        pushNotification({
+          orgId: org.id, actorId: user.id,
+          kind: "file_uploaded",
+          title: `${success} file${success !== 1 ? "s" : ""} uploaded`,
+          entityType: "file",
         });
       }
-    } catch (error: any) {
-      const raw = (error?.message || error?.error || "").toString();
-      const isRls =
-        error?.statusCode === "403" ||
-        error?.status === 403 ||
-        /row-level security|row level security|violates.*policy|unauthorized/i.test(raw);
+    }
+    setUploading(false);
+  }, [hubPrefix, org, user, qc]);
 
-      if (isRls) {
-        toast.error(
-          "You don't have permission to upload to this workspace. Ask an admin to confirm your membership is active, then try again.",
-          { duration: 6000 }
-        );
-      } else {
-        toast.error(raw || "Upload failed");
-      }
-    } finally {
-      setUploading(false);
-      e.target.value = "";
+  const handleInput = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const list = Array.from(e.target.files ?? []);
+    e.target.value = "";
+    await uploadFiles(list);
+  };
+
+  const handleDrop = async (e: React.DragEvent) => {
+    e.preventDefault(); setDragOver(false);
+    await uploadFiles(Array.from(e.dataTransfer.files));
+  };
+
+  const handleDelete = async (f: FileAttachment) => {
+    if (!confirm(`Delete "${f.name}"?`)) return;
+    const { error } = await supabase.storage.from("document-files").remove([f.path]);
+    if (error) { toast.error(error.message); return; }
+    toast.success("File deleted");
+    qc.invalidateQueries({ queryKey: ["hub-files", hubPrefix] });
+    if (org && user) {
+      pushNotification({
+        orgId: org.id, actorId: user.id,
+        kind: "file_deleted",
+        title: `File deleted: ${f.name}`,
+        entityType: "file",
+      });
     }
   };
 
-  const handleDeleteFile = async (attachment: FileAttachment) => {
-    if (!confirm(`Delete ${attachment.name}?`)) return;
-    const { error } = await supabase.storage.from("document-files").remove([attachment.path]);
-    if (error) return toast.error(error.message);
-    toast.success("File deleted");
-    qc.invalidateQueries({ queryKey: ["doc-files", doc.id] });
-  };
-
-  if (!editor) return <div className="grid h-40 place-items-center"><Loader2 className="h-5 w-5 animate-spin text-primary-600" /></div>;
+  const filtered = files.filter((f) =>
+    !search || f.name.toLowerCase().includes(search.toLowerCase()),
+  );
 
   return (
-    <div>
-      <div className="mb-4 flex items-center gap-3">
-        <input value={title} onChange={(e) => setTitle(e.target.value)} onBlur={saveMeta}
-          className="flex-1 bg-transparent text-2xl font-bold outline-none" placeholder="Untitled" />
-        <select value={boardId} onChange={(e) => { setBoardId(e.target.value); setTimeout(saveMeta, 0); }} className="input-field py-1.5 text-xs">
-          <option value="">No board</option>
-          {boards.map((b) => <option key={b.id} value={b.id}>{b.name}</option>)}
-        </select>
-        <button 
-          onClick={() => setShowShareModal(true)}
-          className="flex items-center gap-1.5 rounded-lg border border-border px-3 py-2 text-xs font-medium transition hover:bg-primary-50 hover:text-primary-700"
+    <div className="space-y-4">
+      {/* Upload zone */}
+      <div
+        onDragOver={(e) => { e.preventDefault(); setDragOver(true); }}
+        onDragLeave={() => setDragOver(false)}
+        onDrop={handleDrop}
+        className={`flex flex-col items-center justify-center gap-3 rounded-xl border-2 border-dashed py-10 text-center transition-colors ${
+          dragOver ? "border-primary-400 bg-primary-50" : "border-border hover:border-primary-300 hover:bg-muted/30"
+        }`}
+      >
+        <div className="grid h-14 w-14 place-items-center rounded-2xl bg-primary-50 text-primary-600">
+          {uploading ? <Loader2 className="h-7 w-7 animate-spin" /> : <Upload className="h-7 w-7" />}
+        </div>
+        <div>
+          <p className="text-sm font-semibold text-foreground">
+            {uploading ? "Uploading…" : "Drop files here or click to upload"}
+          </p>
+          <p className="mt-0.5 text-xs text-muted-foreground">
+            Any file type · visible to all team members
+          </p>
+        </div>
+        <input ref={fileInputRef} type="file" multiple accept="*/*" className="hidden" onChange={handleInput} />
+        <button
+          onClick={() => fileInputRef.current?.click()}
+          disabled={uploading}
+          className="btn-primary inline-flex items-center gap-2 text-sm disabled:opacity-50"
         >
-          <Share2 className="h-3.5 w-3.5" />
-          Share
-        </button>
-        <span className="text-xs text-muted-foreground">{saving ? "Saving…" : "Saved"}</span>
-        <button onClick={onDelete} className="grid h-8 w-8 place-items-center rounded-lg text-muted-foreground hover:bg-red-50 hover:text-destructive">
-          <Trash2 className="h-4 w-4" />
+          <Upload className="h-4 w-4" /> Choose Files
         </button>
       </div>
 
-      <div className="mb-3 flex flex-wrap gap-1 rounded-lg border border-border bg-muted/30 p-1">
-        <ToolbarBtn active={editor.isActive("heading", { level: 1 })} onClick={() => editor.chain().focus().toggleHeading({ level: 1 }).run()}><Heading1 className="h-4 w-4" /></ToolbarBtn>
-        <ToolbarBtn active={editor.isActive("heading", { level: 2 })} onClick={() => editor.chain().focus().toggleHeading({ level: 2 }).run()}><Heading2 className="h-4 w-4" /></ToolbarBtn>
-        <ToolbarBtn active={editor.isActive("bold")} onClick={() => editor.chain().focus().toggleBold().run()}><Bold className="h-4 w-4" /></ToolbarBtn>
-        <ToolbarBtn active={editor.isActive("italic")} onClick={() => editor.chain().focus().toggleItalic().run()}><Italic className="h-4 w-4" /></ToolbarBtn>
-        <ToolbarBtn active={editor.isActive("bulletList")} onClick={() => editor.chain().focus().toggleBulletList().run()}><List className="h-4 w-4" /></ToolbarBtn>
-        <ToolbarBtn active={editor.isActive("orderedList")} onClick={() => editor.chain().focus().toggleOrderedList().run()}><ListOrdered className="h-4 w-4" /></ToolbarBtn>
-        <ToolbarBtn active={editor.isActive("blockquote")} onClick={() => editor.chain().focus().toggleBlockquote().run()}><Quote className="h-4 w-4" /></ToolbarBtn>
-        <ToolbarBtn active={editor.isActive("codeBlock")} onClick={() => editor.chain().focus().toggleCodeBlock().run()}><Code className="h-4 w-4" /></ToolbarBtn>
-        <label className="ml-auto flex h-8 cursor-pointer items-center gap-1.5 rounded px-2.5 text-xs font-medium text-muted-foreground transition hover:bg-primary-50 hover:text-primary-700" data-testid="document-upload-label">
-          <Upload className="h-4 w-4" />
-          <span className="hidden sm:inline">{uploading ? "Uploading..." : "Upload File"}</span>
+      {/* Search */}
+      <div className="flex flex-wrap items-center gap-3">
+        <div className="relative flex-1 max-w-sm">
+          <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
           <input
-            type="file"
-            multiple
-            disabled={uploading}
-            className="hidden"
-            onChange={handleFileUpload}
-            data-testid="document-upload-input"
+            type="text"
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+            placeholder="Search files…"
+            className="w-full rounded-lg border border-border bg-white px-3 py-2 pl-9 text-sm outline-none transition focus:border-primary-400 focus:ring-2 focus:ring-primary-100"
           />
-        </label>
+        </div>
+        <span className="ml-auto text-xs text-muted-foreground">{filtered.length} file{filtered.length !== 1 ? "s" : ""}</span>
       </div>
 
-      {attachments.length > 0 && (
-        <div className="mb-4 rounded-xl border border-border bg-muted/20 p-3">
-          <div className="mb-2 flex items-center justify-between">
-            <div className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">
-              Attachments ({attachments.length})
-            </div>
+      {/* File list */}
+      {filtered.length === 0 ? (
+        <div className="card-surface flex flex-col items-center gap-3 py-16 text-center">
+          <FolderOpen className="h-10 w-10 text-muted-foreground/40" />
+          <p className="text-sm text-muted-foreground">
+            {search ? "No files match your search." : "No files uploaded yet. Drop files above to get started."}
+          </p>
+        </div>
+      ) : (
+        <div className="card-surface overflow-hidden rounded-xl border border-border">
+          <div className="grid grid-cols-[1fr_120px_140px_100px] gap-4 border-b border-border bg-muted/40 px-4 py-2.5 text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+            <span>File</span>
+            <span>Size</span>
+            <span>Type</span>
+            <span className="text-right">Actions</span>
           </div>
-          <div className="space-y-1.5">
-            {attachments.map((f) => (
-              <div key={f.id} className="flex items-center gap-2 rounded-lg bg-card px-3 py-2 text-sm transition hover:bg-muted/50">
-                <Paperclip className="h-3.5 w-3.5 text-muted-foreground" />
-                <a 
-                  href={f.url} 
-                  target="_blank" 
-                  rel="noopener noreferrer"
-                  className="flex-1 truncate font-medium hover:text-primary-600 hover:underline"
+          <div className="divide-y divide-border">
+            <AnimatePresence initial={false}>
+              {filtered.map((f) => (
+                <motion.div
+                  key={f.id}
+                  initial={{ opacity: 0, y: -6 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  exit={{ opacity: 0, height: 0 }}
+                  className="grid grid-cols-[1fr_120px_140px_100px] items-center gap-4 px-4 py-3 transition hover:bg-muted/30"
                 >
-                  {f.name}
-                </a>
-                <span className="text-xs text-muted-foreground">{(f.size / 1024).toFixed(1)} KB</span>
-                <button
-                  onClick={() => handleDeleteFile(f)}
-                  className="grid h-5 w-5 place-items-center rounded hover:bg-muted hover:text-destructive"
-                >
-                  <X className="h-3 w-3" />
-                </button>
-              </div>
-            ))}
+                  <div className="flex items-center gap-3 min-w-0">
+                    <div className="grid h-9 w-9 shrink-0 place-items-center rounded-lg bg-muted">
+                      <FileIcon name={f.name} size="md" />
+                    </div>
+                    <a
+                      href={f.url}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="truncate text-sm font-medium hover:text-primary-600 hover:underline"
+                    >
+                      {f.name}
+                    </a>
+                  </div>
+                  <span className="text-xs text-muted-foreground">{formatBytes(f.size)}</span>
+                  <span className="truncate text-xs text-muted-foreground uppercase">
+                    {f.name.split(".").pop() ?? "—"}
+                  </span>
+                  <div className="flex items-center justify-end gap-1">
+                    <a
+                      href={f.url}
+                      download={f.name}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="grid h-7 w-7 place-items-center rounded-lg text-muted-foreground transition hover:bg-primary-50 hover:text-primary-700"
+                      title="Download"
+                    >
+                      <Download className="h-3.5 w-3.5" />
+                    </a>
+                    <button
+                      onClick={() => handleDelete(f)}
+                      className="grid h-7 w-7 place-items-center rounded-lg text-muted-foreground transition hover:bg-red-50 hover:text-destructive"
+                      title="Delete"
+                    >
+                      <Trash2 className="h-3.5 w-3.5" />
+                    </button>
+                  </div>
+                </motion.div>
+              ))}
+            </AnimatePresence>
           </div>
         </div>
       )}
-
-      <EditorContent editor={editor} />
-
-      <ShareModal 
-        open={showShareModal}
-        onClose={() => setShowShareModal(false)}
-        docId={doc.id}
-        docTitle={doc.title}
-      />
     </div>
   );
 }
 
-function ShareModal({ open, onClose, docId, docTitle }: { open: boolean; onClose: () => void; docId: string; docTitle: string }) {
-  const { org } = useAuth();
-  const [selectedUsers, setSelectedUsers] = useState<string[]>([]);
-  const [sharing, setSharing] = useState(false);
+// ── Helpers ───────────────────────────────────────────────────────────────────
 
-  const { data: teamMembers } = useQuery({
-    queryKey: ["team-members", org?.id],
-    enabled: !!org && open,
-    queryFn: async () => {
-      const { data } = await supabase
-        .from("organization_members")
-        .select("user_id, profiles(id, full_name, email)")
-        .eq("org_id", org!.id)
-        .eq("status", "active");
-      return data?.map((m: any) => ({
-        id: m.profiles.id,
-        name: m.profiles.full_name || m.profiles.email,
-        email: m.profiles.email,
-      })) ?? [];
-    },
-  });
-
-  const handleShare = async () => {
-    if (!selectedUsers.length) {
-      toast.error("Select at least one team member");
-      return;
-    }
-    setSharing(true);
-    try {
-      // In a real app, you'd insert into a document_shares table
-      // For now, we'll just show a success message
-      toast.success(`Document shared with ${selectedUsers.length} member(s)`);
-      onClose();
-    } catch (error: any) {
-      toast.error(error.message);
-    } finally {
-      setSharing(false);
-    }
-  };
-
-  return (
-    <AnimatePresence>
-      {open && (
-        <>
-          <motion.div
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
-            className="fixed inset-0 z-50 bg-black/40 backdrop-blur-sm"
-            onClick={onClose}
-          />
-          <motion.div
-            initial={{ opacity: 0, scale: 0.95 }}
-            animate={{ opacity: 1, scale: 1 }}
-            exit={{ opacity: 0, scale: 0.95 }}
-            className="fixed left-1/2 top-1/2 z-50 w-full max-w-md -translate-x-1/2 -translate-y-1/2 rounded-2xl border border-border bg-card p-6 shadow-2xl"
-          >
-            <div className="mb-4 flex items-center gap-3">
-              <div className="grid h-10 w-10 place-items-center rounded-xl bg-primary-50 text-primary-600">
-                <UsersIcon className="h-5 w-5" />
-              </div>
-              <div>
-                <h3 className="font-semibold">Share Document</h3>
-                <p className="text-xs text-muted-foreground">{docTitle}</p>
-              </div>
-            </div>
-
-            <div className="mb-4 max-h-64 space-y-2 overflow-y-auto">
-              {teamMembers?.map((member) => (
-                <label
-                  key={member.id}
-                  className="flex cursor-pointer items-center gap-3 rounded-lg border border-border p-3 transition hover:bg-muted"
-                >
-                  <input
-                    type="checkbox"
-                    checked={selectedUsers.includes(member.id)}
-                    onChange={(e) => {
-                      if (e.target.checked) {
-                        setSelectedUsers([...selectedUsers, member.id]);
-                      } else {
-                        setSelectedUsers(selectedUsers.filter((id) => id !== member.id));
-                      }
-                    }}
-                    className="h-4 w-4 rounded border-border text-primary-600"
-                  />
-                  <div className="flex-1">
-                    <div className="text-sm font-medium">{member.name}</div>
-                    <div className="text-xs text-muted-foreground">{member.email}</div>
-                  </div>
-                </label>
-              ))}
-              {!teamMembers?.length && (
-                <div className="py-8 text-center text-sm text-muted-foreground">
-                  No team members found
-                </div>
-              )}
-            </div>
-
-            <div className="flex gap-2">
-              <button
-                onClick={handleShare}
-                disabled={sharing || !selectedUsers.length}
-                className="btn-primary flex-1 disabled:opacity-50"
-              >
-                {sharing ? "Sharing..." : `Share with ${selectedUsers.length || "..."}`}
-              </button>
-              <button
-                onClick={onClose}
-                className="btn-secondary"
-              >
-                Cancel
-              </button>
-            </div>
-          </motion.div>
-        </>
-      )}
-    </AnimatePresence>
-  );
+function FileIcon({ name, size = "sm" }: { name: string; size?: "sm" | "md" }) {
+  const ext = name.split(".").pop()?.toLowerCase() ?? "";
+  const cls = size === "md" ? "h-5 w-5" : "h-3.5 w-3.5";
+  if (["jpg","jpeg","png","gif","webp","svg","bmp","ico","tiff"].includes(ext)) return <FileImage className={`${cls} text-rose-500`} />;
+  if (["xls","xlsx","csv","ods"].includes(ext)) return <FileSpreadsheet className={`${cls} text-emerald-600`} />;
+  if (["ppt","pptx","odp"].includes(ext)) return <FileText className={`${cls} text-orange-500`} />;
+  if (["doc","docx","odt","rtf"].includes(ext)) return <FileText className={`${cls} text-blue-500`} />;
+  if (["pdf"].includes(ext)) return <FileText className={`${cls} text-red-600`} />;
+  if (["txt","md","log"].includes(ext)) return <FileCode className={`${cls} text-muted-foreground`} />;
+  if (["zip","rar","7z","tar","gz"].includes(ext)) return <FileArchive className={`${cls} text-yellow-600`} />;
+  if (["js","ts","jsx","tsx","py","java","cs","html","css","json","xml"].includes(ext)) return <FileCode className={`${cls} text-violet-500`} />;
+  return <File className={`${cls} text-muted-foreground`} />;
 }
 
-function ToolbarBtn({ active, onClick, children }: { active: boolean; onClick: () => void; children: React.ReactNode }) {
-  return (
-    <button onClick={onClick} className={`grid h-8 w-8 place-items-center rounded ${active ? "bg-primary-600 text-white" : "text-muted-foreground hover:bg-muted hover:text-foreground"}`}>
-      {children}
-    </button>
-  );
-}
-
-function EmptyOrg() {
-  return (
-    <div className="card-surface grid h-[60vh] place-items-center p-10 text-center">
-      <div>
-        <h2 className="text-lg font-semibold">No workspace yet</h2>
-        <p className="mt-1 text-sm text-muted-foreground">Create or join a workspace to write documents.</p>
-      </div>
-    </div>
-  );
+function formatBytes(bytes: number): string {
+  if (bytes < 1024) return `${bytes} B`;
+  if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)} KB`;
+  return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
 }

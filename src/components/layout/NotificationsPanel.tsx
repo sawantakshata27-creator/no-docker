@@ -1,20 +1,32 @@
-import { useMemo, useState } from "react";
+import { useMemo, useState, useEffect, useRef } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useNavigate } from "@tanstack/react-router";
-import { Bell, UserPlus, CalendarClock, CheckCircle2, X, Circle } from "lucide-react";
+import { Bell, UserPlus, CalendarClock, CheckCircle2, X, Circle, FileUp, FileX, StickyNote, Trash2, Save, Kanban } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/lib/auth-store";
 
 type NotifItem = {
   id: string;
-  kind: "join_request" | "task_overdue" | "task_due_today";
+  kind: string;
   title: string;
   subtitle: string;
   icon: typeof UserPlus;
   iconClass: string;
   to: string;
   dotClass: string;
+  createdAt?: string;
+};
+
+const KIND_META: Record<string, { icon: any; iconClass: string; dotClass: string; to: string }> = {
+  task_created: { icon: Kanban,     iconClass: "bg-primary-50 text-primary-600",   dotClass: "bg-primary-500",  to: "/board" },
+  task_updated: { icon: Save,       iconClass: "bg-blue-50 text-blue-600",         dotClass: "bg-blue-400",     to: "/board" },
+  task_deleted: { icon: Trash2,     iconClass: "bg-red-50 text-red-600",           dotClass: "bg-red-500",      to: "/board" },
+  file_uploaded:{ icon: FileUp,     iconClass: "bg-emerald-50 text-emerald-600",   dotClass: "bg-emerald-500",  to: "/documents" },
+  file_deleted: { icon: FileX,      iconClass: "bg-red-50 text-red-600",           dotClass: "bg-red-500",      to: "/documents" },
+  note_created: { icon: StickyNote, iconClass: "bg-amber-50 text-amber-600",       dotClass: "bg-amber-500",    to: "/documents" },
+  note_updated: { icon: StickyNote, iconClass: "bg-amber-50 text-amber-600",       dotClass: "bg-amber-400",    to: "/documents" },
+  note_deleted: { icon: Trash2,     iconClass: "bg-red-50 text-red-600",           dotClass: "bg-red-500",      to: "/documents" },
 };
 
 /**
@@ -53,6 +65,18 @@ export function NotificationsPanel() {
   const qc = useQueryClient();
   const [open, setOpen] = useState(false);
   const [readVersion, setReadVersion] = useState(0);
+  const panelRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    if (!open) return;
+    const handler = (e: MouseEvent) => {
+      if (panelRef.current && !panelRef.current.contains(e.target as Node)) {
+        setOpen(false);
+      }
+    };
+    document.addEventListener("mousedown", handler);
+    return () => document.removeEventListener("mousedown", handler);
+  }, [open]);
 
   const isAdmin = membership?.role === "owner" || membership?.role === "admin";
 
@@ -75,6 +99,21 @@ export function NotificationsPanel() {
       const pmap: Record<string, any> = {};
       (profilesRes.data ?? []).forEach((p) => (pmap[p.id] = p));
       return (data ?? []).map((m) => ({ ...m, profile: pmap[m.user_id] }));
+    },
+  });
+
+  const { data: activityNotifs } = useQuery({
+    queryKey: ["notif-activity", org?.id],
+    enabled: !!org,
+    refetchInterval: 30_000,
+    queryFn: async () => {
+      const { data } = await (supabase as any)
+        .from("notifications")
+        .select("id, kind, title, subtitle, route, created_at")
+        .eq("org_id", org!.id)
+        .order("created_at", { ascending: false })
+        .limit(30);
+      return (data ?? []) as { id: string; kind: string; title: string; subtitle: string; route: string; created_at: string }[];
     },
   });
 
@@ -130,8 +169,32 @@ export function NotificationsPanel() {
         dotClass: isOverdue ? "bg-red-500" : "bg-amber-500",
       });
     });
+    // Activity notifications from DB
+    (activityNotifs ?? []).forEach((n) => {
+      const meta = KIND_META[n.kind] ?? { icon: Bell, iconClass: "bg-muted text-muted-foreground", dotClass: "bg-muted-foreground", to: "/" };
+      list.push({
+        id: `activity:${n.id}`,
+        kind: n.kind,
+        title: n.title,
+        subtitle: n.subtitle,
+        icon: meta.icon,
+        iconClass: meta.iconClass,
+        to: meta.to,
+        dotClass: meta.dotClass,
+        createdAt: n.created_at,
+      });
+    });
+
+    // Sort all by newest first (activity items have createdAt, derived ones don't)
+    list.sort((a, b) => {
+      if (a.createdAt && b.createdAt) return new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime();
+      if (a.createdAt) return -1;
+      if (b.createdAt) return 1;
+      return 0;
+    });
+
     return list;
-  }, [pending, myTasks]);
+  }, [pending, myTasks, activityNotifs]);
 
   const read = user ? loadRead(user.id) : new Set<string>();
   void readVersion;
@@ -158,11 +221,12 @@ export function NotificationsPanel() {
     markRead(item.id);
     setOpen(false);
     qc.invalidateQueries({ queryKey: ["notif-pending"] });
+    qc.invalidateQueries({ queryKey: ["notif-activity", org?.id] });
     navigate({ to: item.to });
   };
 
   return (
-    <div className="relative">
+    <div className="relative" ref={panelRef}>
       <motion.button
         whileHover={{ scale: 1.05 }}
         whileTap={{ scale: 0.95 }}
@@ -187,11 +251,6 @@ export function NotificationsPanel() {
       <AnimatePresence>
         {open && (
           <>
-            <div
-              className="fixed inset-0 z-30"
-              onClick={() => setOpen(false)}
-              data-testid="notifications-backdrop"
-            />
             <motion.div
               initial={{ opacity: 0, y: -8, scale: 0.96 }}
               animate={{ opacity: 1, y: 0, scale: 1 }}

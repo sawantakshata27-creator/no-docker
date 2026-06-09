@@ -1,10 +1,11 @@
 [build]
   command = "npm run build"
-  publish = "dist/client"
+  publish = "dist/client" # keep this for static assets
 
-[build.environment]
-  NODE_VERSION = "20"
+[functions]
+  directory = "netlify/functions" # make sure functions are output here
 
-[[edge_functions]]
-  function = "server"
-  path = "/*"
+[[redirects]]
+  from = "/*"
+  to = "/.netlify/functions/server"
+  status = 200

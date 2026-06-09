@@ -14,7 +14,7 @@ export default defineConfig({
   plugins: [
     tsConfigPaths(),
     tailwindcss(),
-    tanstackStart({ deployment: { preset: "netlify" } }),
+    tanstackStart(),
     viteReact(),
   ],
 });

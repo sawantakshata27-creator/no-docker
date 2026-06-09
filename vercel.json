@@ -3,11 +3,6 @@
   "outputDirectory": "dist/client",
   "framework": null,
   "rewrites": [
-    { "source": "/(.*)", "destination": "/api/server" }
-  ],
-  "functions": {
-    "api/server.js": {
-      "includeFiles": "dist/server/**"
-    }
-  }
+    { "source": "/(.*)", "destination": "/index.html" }
+  ]
 }
